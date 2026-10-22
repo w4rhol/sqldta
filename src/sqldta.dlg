@@ -1,0 +1,428 @@
+/*
+*! version 1.0.0 21oct2026
+*! sqldta.dlg: dialog for sqldta 1.0.0; its helper is sqldta_dlg.ado
+*! Builds: sqldta [if], database() dataset([schema.]table) [server() frame() clear
+*!   labels() labeltable() sqlselect() sqlwhere() sqlrand() lowercase nodecformat
+*!   unicode()]
+*! Open it with: db sqldta
+*! Add it to the User menu with:
+*!   window menu append item "stUser" "Load a SQL Server table (sqldta)" "db sqldta"
+*!   window menu refresh
+
+  The lists hold no fixed values. Servers come from the global
+  SQLDTA_SERVERS; databases from SQLDTA_DATABASES or from the server, with
+  the default database of each server from SQLDTA_DEFAULTDB; schemas,
+  tables and views, the description of a table and its columns from the
+  database, through sqldta_dlg.ado. The servers are written to their LIST
+  before the controls exist (PREINIT); every later change is made by the
+  helper, which is queued with stata hidden queue so that the dialog stays
+  responsive while a server answers. The handlers do nothing while the
+  property isLoading is true, which the helper sets while it changes the
+  controls.
+
+  The list of tables starts with the entry "(none chosen)", which the helper
+  selects when the dialog opens and whenever no table is chosen, because a
+  list box with items always has one selected. Nothing is described until a
+  table is chosen. The same text is in sqldta_dlg.ado, _sqldta_dlg_none().
+
+  No label, tooltip, default or other text in this file may begin with the
+  word literal, char, global or class, or with c(, r(, e( or s(. The dialog
+  language reads such a text as the source of a value, as it does for
+  default(), and not as text to show: a tooltip that began with the word
+  char and a comma was run as the command char, and printed ", invalid name"
+  each time the dialog opened and on Reset (found by the maintainer on
+  20 Oct 2026). Test 200 of tests/test_sqldta.do checks this file for such
+  texts.
+*/
+
+VERSION 16.0
+SYNCHRONOUS_ONLY
+POSITION . . 760 490
+
+OK      ok1,   label("OK")
+CANCEL  can1,  label("Cancel")
+SUBMIT  sub1,  label("Submit")
+COPY    copy1, uaction(copycmd)
+HELP    hlp1,  view("help sqldta")
+RESET   res1
+
+SCRIPT PREINIT
+BEGIN
+	create BOOLEAN isLoading
+	isLoading.settrue
+	create STRING listedServer
+	program dlg_preinit
+END
+
+SCRIPT POSTINIT
+BEGIN
+	isLoading.setfalse
+	program dlg_start
+END
+
+DIALOG main, label("sqldta - Load a SQL Server table or view") tabtitle("Import")
+BEGIN
+  TEXT     tx_server     10   10  220    ., label("Server:")
+  COMBOBOX cb_server     @   +20    @    ., dropdown contents(ls_server)          ///
+                                            option(server) error("Server")       ///
+                                            onselchange(program main_server)
+  TEXT     tx_database   @   +30    @    ., label("Database:")
+  COMBOBOX cb_database   @   +20    @    ., dropdown contents(ls_database)        ///
+                                            option(database) error("Database")   ///
+                                            onselchange(program main_database)
+  TEXT     tx_schema     @   +30    @    ., label("Schema:")
+  COMBOBOX cb_schema     @   +20    @    ., dropdown contents(ls_schema)          ///
+                                            onselchange(program main_schema)
+  BUTTON   bu_refresh    @   +40  120    ., label("Refresh lists")                ///
+                                            onpush(program main_refresh)         ///
+                                            tooltip("List the databases, schemas and tables again, keeping the names chosen or typed")
+
+  TEXT     tx_table      240  10  250    ., label("Tables and views:")
+  LISTBOX  lb_table      @   +20    @  240, contents(ls_table) option(dataset)   ///
+                                            error("Table or view")               ///
+                                            onselchange(program main_table)
+
+  GROUPBOX gb_desc       500  10  250  260, label("Description")
+  TEXTBOX  tb_desc       510 +20  230  230, label("Choose a table or view to see its description.")
+
+  GROUPBOX gb_frame      10  280  470   85, label("Frame")
+  TEXT     tx_frame      20  +20  220    ., label("Name (blank for the current frame):")
+  EDIT     ed_frame      @   +20    @    ., option(frame) error("Frame")
+  CHECKBOX ck_clear      250 300  220    ., label("Replace the data in the frame")   ///
+                                            option(clear)
+  CHECKBOX ck_switch     @   +20    @    ., label("Change to the frame after loading")
+
+  GROUPBOX gb_vars       490 280  260   85, label("Variables")
+  CHECKBOX ck_lower      500 +20  245    ., label("Lower-case variable names")      ///
+                                            option(lowercase)
+  CHECKBOX ck_nodec      @   +20    @    ., label("Do not inherit SQL decimal precision") ///
+                                            option(nodecformat)                   ///
+                                            tooltip("nodecformat: decimal and numeric columns keep the display format %10.0g instead of one from their precision and scale; the values are the same")
+
+  GROUPBOX gb_labels     10  375  740   70, label("Labels and notes from the label table")
+  CHECKBOX ck_values     20  +20  230    ., label("Value labels") default(1)     ///
+                                            tooltip("labels(values): value labels, such as 1 Male and 2 Female, from the ValueLabel rows of the label table, attached to numeric variables")
+  CHECKBOX ck_variables  @   +20    @    ., label("Variable labels") default(1)  ///
+                                            tooltip("labels(variables): a label of up to 80 characters for each variable, from the VariableLabel rows of the label table")
+  CHECKBOX ck_formats    260 395  230    ., label("Display formats") default(1)  ///
+                                            tooltip("labels(formats): display formats, such as %9.2fc or %tdDD/NN/CCYY, from the Format rows of the label table; they replace the formats that sqldta sets")
+  CHECKBOX ck_varnotes   @   +20    @    ., label("Variable notes") default(1)   ///
+                                            tooltip("labels(varnotes): notes on variables, from the VariableNote rows of the label table; type notes to list them")
+  CHECKBOX ck_dtanotes   500 395  240    ., label("Dataset notes") default(1)    ///
+                                            tooltip("labels(dtanotes): notes on the dataset as a whole, from the DatasetNote rows of the label table; type notes to list them")
+  CHECKBOX ck_datalabel  @   +20    @    ., label("Dataset label") default(1)    ///
+                                            tooltip("labels(datalabel): the label of the dataset, which label data sets and describe shows, from a DataLabel row of the label table; without it the label is database.schema.table")
+END
+
+// No label has an ampersand: Windows takes it as the mark of a keyboard
+// shortcut and does not show it
+DIALOG advanced, tabtitle("Advanced")
+BEGIN
+  GROUPBOX gb_rows       10   10  740  170, label("Rows to load")
+  TEXT     tx_if         20  +20  720    ., label("As a Stata expression (if), such as age >= 65:")
+  EDIT     ed_if         @   +20    @    ., tooltip("Column names, numbers, strings in double quotes, td() and tc() dates; see help sqldta")
+  TEXT     tx_where      @   +25    @    ., label("As a T-SQL condition (sqlwhere), such as diag1 LIKE 'C1%':")
+  EDIT     ed_where      @   +20    @    ., option(sqlwhere)                         ///
+                                            tooltip("Passed to the server as typed, after WHERE")
+  TEXT     tx_both       @   +25    @    ., label("If both are given, a row is loaded only if it meets both.")
+  CHECKBOX ck_rand       @   +30  420    ., label("Random sample of this many of the rows that meet the conditions:") ///
+                                            onclickon(advanced.ed_rand.enable)          ///
+                                            onclickoff(advanced.ed_rand.disable)
+  EDIT     ed_rand       +430  @  100    ., numonly option(sqlrand)                     ///
+                                            error("Number of rows in the sample")
+
+  TEXT     tx_select     10  190  520    ., label("Columns to load (blank for all; * and ? are wildcards):")
+  EDIT     ed_select     @   +20    @    ., option(sqlselect)                         ///
+                                            tooltip("Names separated by spaces; * stands for any characters and ? for one: birth* starts with birth, *loc* contains loc, *loc ends with loc")
+  BUTTON   bu_addsel     +530  @  100    ., label("Add selected")                    ///
+                                            onpush(script advanced_addcolumn)         ///
+                                            tooltip("Adds the column selected in the list below; a double-click on it does the same")
+  BUTTON   bu_addselall  +110  @  100    ., label("Add all shown")                   ///
+                                            onpush(program advanced_addallselect)     ///
+                                            tooltip("Adds every column that the list below shows, which Find narrows")
+  TEXT     tx_unicode    10  235  520    ., label("Text columns to load as Unicode (* for all):")
+  EDIT     ed_unicode    @   +20    @    ., option(unicode)                           ///
+                                            tooltip("varchar, char and text columns are loaded as they are, which is faster; name those that hold characters outside ASCII, such as accented letters, with * and ? as in Columns to load; see help sqldta")
+  BUTTON   bu_adduni     +530  @  100    ., label("Add selected")                    ///
+                                            onpush(script advanced_addunicode)        ///
+                                            tooltip("Adds the column selected in the list below")
+  BUTTON   bu_adduniall  +110  @  100    ., label("Add all shown")                   ///
+                                            onpush(program advanced_addallunicode)    ///
+                                            tooltip("Adds every column that the list below shows, which Find narrows")
+
+  TEXT     tx_column     10  285  360    ., label("Columns (a double-click adds to Columns to load):")
+  TEXT     tx_find       @   +25   40    ., label("Find:")
+  EDIT     ed_find       +45   @  315    ., nomemory onchange(program advanced_find)  ///
+                                            tooltip("Shows only the columns whose name, variable label or value labels contain every word typed here, in any case, such as smok")
+  LISTBOX  lb_column     10  +25  360  120, contents(ls_column)                       ///
+                                            onselchange(program advanced_column)       ///
+                                            ondblclick(script advanced_addcolumn)
+  TEXT     tx_shown      @  +125  360    ., label(" ")
+
+  GROUPBOX gb_column     380 285  370  145, label("Column chosen")
+  TEXTBOX  tb_column     390 +20  350  120, label("Choose a table on the Import tab, then a column here to see its labels.")
+  TEXT     tx_labeltable 380 440  370    ., label("Label table, as schema.table or table (blank for the default):")
+  EDIT     ed_labeltable @   +20    @    ., option(labeltable)                        ///
+                                            tooltip("A table named without a schema is looked for in the schema of the default label table, ref.DataProperties unless the site has set another")
+END
+
+LIST ls_server
+BEGIN
+	// filled by sqldta_dlg preinit from SQLDTA_SERVERS
+END
+
+LIST ls_database
+BEGIN
+	// filled by sqldta_dlg
+END
+
+LIST ls_schema
+BEGIN
+	// filled by sqldta_dlg
+END
+
+LIST ls_table
+BEGIN
+	// filled by sqldta_dlg
+END
+
+LIST ls_column
+BEGIN
+	// filled by sqldta_dlg
+END
+
+// Calls of the helper. Each handler does nothing while the helper itself is
+// changing the controls.
+
+PROGRAM dlg_preinit
+BEGIN
+	put "sqldta_dlg preinit"
+	stata hidden immediate
+END
+
+PROGRAM dlg_start
+BEGIN
+	put "sqldta_dlg start"
+	stata hidden queue
+END
+
+PROGRAM main_server
+BEGIN
+	if ! isLoading {
+		put "sqldta_dlg databases"
+		stata hidden queue
+	}
+END
+
+PROGRAM main_database
+BEGIN
+	if ! isLoading {
+		put "sqldta_dlg schemas"
+		stata hidden queue
+	}
+END
+
+PROGRAM main_schema
+BEGIN
+	if ! isLoading {
+		put "sqldta_dlg tables"
+		stata hidden queue
+	}
+END
+
+PROGRAM main_table
+BEGIN
+	if ! isLoading {
+		put "sqldta_dlg describe"
+		stata hidden queue
+	}
+END
+
+PROGRAM main_refresh
+BEGIN
+	put "sqldta_dlg refresh"
+	stata hidden queue
+END
+
+// A column clicked in the list shows its labels, from the texts that the
+// helper kept when it described the table, with no query
+PROGRAM advanced_column
+BEGIN
+	if ! isLoading {
+		put "sqldta_dlg column"
+		stata hidden queue
+	}
+END
+
+// Find narrows the list of columns to those whose name, variable label or
+// value labels contain every word typed in it. Every keystroke queues the
+// helper, even while it is busy, because a keystroke dropped then would leave
+// the list narrowed by an earlier text (the maintainer's report of 20 Oct
+// 2026, typing quickly); the helper reads the text when it runs and does
+// nothing if it has already applied that text.
+PROGRAM advanced_find
+BEGIN
+	put "sqldta_dlg find"
+	stata hidden queue
+END
+
+// Every column that the list shows is added to the end of the columns to
+// load or of the Unicode columns
+PROGRAM advanced_addallselect
+BEGIN
+	put "sqldta_dlg addall select"
+	stata hidden queue
+END
+
+PROGRAM advanced_addallunicode
+BEGIN
+	put "sqldta_dlg addall unicode"
+	stata hidden queue
+END
+
+// The column selected in the list is added to the end of the columns to
+// load, by a double-click or the button beside that field, or of the Unicode
+// columns, by the button beside that field
+SCRIPT advanced_addcolumn
+BEGIN
+	advanced.lb_column.withvalue advanced.ed_select.append `" @"'
+END
+
+SCRIPT advanced_addunicode
+BEGIN
+	advanced.lb_column.withvalue advanced.ed_unicode.append `" @"'
+END
+
+// The command. OK and Submit run sqldta and then, if the box is ticked and a
+// frame is named, frame change; Copy copies the sqldta command alone, because
+// a program that runs stata would run the first command instead of copying it.
+// The entry "(none chosen)" of the list of tables is not a table.
+
+PROGRAM command
+BEGIN
+	require main.cb_database
+	require main.lb_table
+	if main.lb_table.iseq("(none chosen)") {
+		stopbox stop "Choose a table or view on the Import tab."
+	}
+	if main.ed_frame & ! main.ed_frame.isvalidname() {
+		stopbox stop "The frame name is not a valid Stata name."
+	}
+	if advanced.ck_rand {
+		require advanced.ed_rand
+	}
+	put /program sqldta_cmd
+	if main.ck_switch & main.ed_frame {
+		stata
+		clear
+		put "frame change " main.ed_frame
+	}
+END
+
+PROGRAM copycmd
+BEGIN
+	require main.cb_database
+	require main.lb_table
+	if main.lb_table.iseq("(none chosen)") {
+		stopbox stop "Choose a table or view on the Import tab."
+	}
+	if main.ed_frame & ! main.ed_frame.isvalidname() {
+		stopbox stop "The frame name is not a valid Stata name."
+	}
+	if advanced.ck_rand {
+		require advanced.ed_rand
+	}
+	put /program sqldta_cmd
+END
+
+// server() and labeltable() are left out when they are the site's default,
+// so that a copied command works at any site with its own defaults. The
+// helper sets the default of the label table, from SQLDTA_LABELTABLE, when
+// the dialog opens.
+// labels() is left out when every label box is ticked, which is the default.
+PROGRAM sqldta_cmd
+BEGIN
+	put "sqldta "
+	if advanced.ed_if {
+		put "if " advanced.ed_if
+	}
+	beginoptions
+		if ! main.cb_server.isdefault() {
+			optionarg main.cb_server
+		}
+		optionarg main.cb_database
+		if main.cb_schema {
+			put " dataset(" main.cb_schema "." main.lb_table ") "
+		}
+		else {
+			optionarg main.lb_table
+		}
+		optionarg main.ed_frame
+		option main.ck_clear
+		if ! (main.ck_values & main.ck_variables & main.ck_formats & main.ck_varnotes & main.ck_dtanotes & main.ck_datalabel) {
+			if ! (main.ck_values | main.ck_variables | main.ck_formats | main.ck_varnotes | main.ck_dtanotes | main.ck_datalabel) {
+				put " labels(none) "
+			}
+			else {
+				// Each word is followed by a space if a later box is ticked,
+				// and otherwise by the closing parenthesis, because put
+				// keeps one space before a parenthesis put on its own. A
+				// leading space is always safe: put keeps one space between
+				// two pieces when either has one there.
+				put " labels("
+				if main.ck_values {
+					if main.ck_variables | main.ck_formats | main.ck_varnotes | main.ck_dtanotes | main.ck_datalabel {
+						put "values "
+					}
+					else {
+						put "values) "
+					}
+				}
+				if main.ck_variables {
+					if main.ck_formats | main.ck_varnotes | main.ck_dtanotes | main.ck_datalabel {
+						put "variables "
+					}
+					else {
+						put "variables) "
+					}
+				}
+				if main.ck_formats {
+					if main.ck_varnotes | main.ck_dtanotes | main.ck_datalabel {
+						put "formats "
+					}
+					else {
+						put "formats) "
+					}
+				}
+				if main.ck_varnotes {
+					if main.ck_dtanotes | main.ck_datalabel {
+						put "varnotes "
+					}
+					else {
+						put "varnotes) "
+					}
+				}
+				if main.ck_dtanotes {
+					if main.ck_datalabel {
+						put "dtanotes "
+					}
+					else {
+						put "dtanotes) "
+					}
+				}
+				if main.ck_datalabel {
+					put "datalabel) "
+				}
+			}
+		}
+		if ! advanced.ed_labeltable.isdefault() {
+			optionarg advanced.ed_labeltable
+		}
+		optionarg advanced.ed_select
+		optionarg advanced.ed_unicode
+		optionarg advanced.ed_where
+		optionarg advanced.ed_rand
+		option main.ck_lower
+		option main.ck_nodec
+	endoptions
+END

@@ -1,0 +1,23 @@
+# Real server and database names for the tests; never committed
+tests/test_config_local.do
+# A settings file at the root of the clone, which sqldta reads there because
+# the current directory is on the ado-path; it holds real names. The example,
+# src/sqldta_site_example.cfg, has another name and is kept.
+/sqldta_site.cfg
+# Stata logs, including tests/test_sqldta.log; they contain real names
+*.log
+*.smcl
+# Stata data files; data must never be committed to this repository
+*.dta
+# Windows folder metadata written on network shares
+Thumbs.db
+desktop.ini
+# RStudio project files, from using RStudio's Git pane on the clone; they are
+# not part of the package
+*.Rproj
+.Rproj.user/
+.Rhistory
+.RData
+.Ruserdata
+# memory snapshots
+*.mdmp

@@ -1,0 +1,30 @@
+v 3
+d sqldta: load a SQL Server table into a frame, with labels and notes from a label table
+d
+d sqldta loads a table or view from Microsoft SQL Server into a Stata frame
+d over ODBC. It can apply value labels, variable labels, display formats,
+d notes and a data label that are stored as rows of a label table in the same
+d database, and can join a table whose columns are split across several
+d tables. Its if qualifier takes a Stata expression, which it translates to
+d T-SQL, so that only the matching rows are read from the server.
+d
+d The package includes sqldta_site_example.cfg, an example of the settings
+d file sqldta_site.cfg; see help sqldta, Site configuration.
+d
+d Requires: Stata 16 or later (Stata 16 updated to 1 September 2020 or
+d later), an ODBC driver for SQL Server, and databases with a
+d case-insensitive collation, the default of SQL Server. Tested on Stata 18
+d and 19.
+d
+d Author: Warren Holroyd
+d Support: https://github.com/w4rhol/sqldta
+d Licence: MIT
+d
+d Distribution-Date: 20261021
+f sqldta.ado
+f _sqldta_odbc.ado
+f _sqldta_settings.ado
+f sqldta_dlg.ado
+f sqldta.sthlp
+f sqldta.dlg
+F sqldta_site_example.cfg
