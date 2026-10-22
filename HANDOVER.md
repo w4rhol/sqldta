@@ -6,14 +6,14 @@ The repository is public, so this file follows hard constraints 3 and 6 of CLAUD
 
 ## 1. State
 
-- sqldta 1.0.0 is being prepared for its first public release. The code of `src/` is that of archive 37e355f, whose test log showed 212 passed and 0 failed (Stata 19 SE, ODBC Driver 18), with only comments, version lines, the help file's text and the package description changed since (section 5).
-- The tests read only the fixtures that `tests/create_fixtures.sql` creates in `_sqldtaTesting` (CLAUDE.md, hard constraint 6). Their log at ab7e6c9 on 21 Oct 2026 (Stata 19 SE, ODBC Driver 18) shows 220 passed and 0 failed (section 5).
+- sqldta 1.0.0, the first public release, was published on 22 Oct 2026 as the release v1.0.0, whose tag is on e9e6046, the first commit of this repository. The code of `src/` is that of archive 37e355f, whose test log showed 212 passed and 0 failed (Stata 19 SE, ODBC Driver 18), with only comments, version lines, the help file's text and the package description changed since (section 5).
+- The tests read only the fixtures that `tests/create_fixtures.sql` creates in `_sqldtaTesting` (CLAUDE.md, hard constraint 6). Their log at e9e6046, from a fresh clone of this repository on 22 Oct 2026 (Stata 19 SE, ODBC Driver 18), shows 220 passed and 0 failed, as did the log at ab7e6c9 on the archive's branch (section 5).
 - Earlier logs, in the archive, covered Stata 18 SE, and ODBC Driver 13 and SQL Server Native Client 11.0 as the template (section 8).
-- Not tried: Stata 16 and 17, which the maintainer does not have; ODBC Driver 17. The dialog is tried by hand only.
+- Not tried: Stata 16 and 17, which the maintainer does not have; ODBC Driver 17; installing from GitHub with `net install`, and `adoupdate` (section 5, step 13). The dialog is tried by hand only.
 
 ## 2. The archive
 
-Development up to the first release, from 17 to 21 Oct 2026, is in the private repository `w4rhol/sqldta-dev`, which is archived, and so read-only, once the release is published; the maintainer can unarchive it. CLAUDE.md, under The archive, says how to cite it and how a session can read it. Pull request numbers start again at #1 in this repository, so the archive's are written "archive pull request #12".
+Development up to the first release, from 17 to 21 Oct 2026, is in the private repository `w4rhol/sqldta-dev`, which the maintainer archived on 22 Oct 2026, after the release, so that it is read-only; the maintainer can unarchive it. Archived, it can still be read: a session attached it with read access and cloned it on 22 Oct 2026. CLAUDE.md, under The archive, says how to cite it and how a session can read it. Pull request numbers start again at #1 in this repository, so the archive's are written "archive pull request #12".
 
 What it holds:
 
@@ -21,13 +21,13 @@ What it holds:
 - Pull requests #1 to #12 and their descriptions.
 - Its HANDOVER.md: the discoveries and their evidence (section 3 there), the plans and decisions with their dates, among them the benchmark against the predecessor and the profile of sqldta's load (4.9, 4.12, 4.15), the two passes over the dialog (4.4, 4.13), the layout of the label table (4.14) and the settings file (4.16), the open questions (5), and every test log from 17 to 21 Oct 2026 (7).
 - What this repository leaves out: the predecessor's code (`legacy/`), the benchmark against it, and files specific to the site where sqldta was first written.
-- The branch `claude/optimistic-edison-kgstwr`, which holds the work of section 5.
+- The branch `claude/optimistic-edison-kgstwr`, which holds the work of section 5 and ends at 2f7d4be, whose tree, 531b338, is that of this repository's first commit, e9e6046.
 
 Its history also holds details of that site and two commits authored under the maintainer's personal address, which is why it stays private.
 
 The state when it ended: the last full log, 212 passed and 0 failed, at archive 37e355f (Stata 19 SE, ODBC Driver 18); archive 133834e on Stata 18 SE, 211 passed and 0 failed; archive 2880551 through ODBC Driver 13 and through SQL Server Native Client 11.0, 211 passed and 0 failed each; the README's examples, 10 passed and 0 failed, at archive 7bb8ce9.
 
-**Record of the end of the archive.** Archive pull request #12 was merged by the maintainer on 21 Oct 2026 at 22:15 AEDT with a merge commit, 06c4b92, whose parents are 3abd168 and 386f8f1, so all 12 of its commits, 37e355f among them, are in the archive's `main`; its head branch was deleted. The archive's branch `claude/laughing-lamport-bh1yt3` held one commit not in `main`, 6446af4, pushed eight minutes after archive pull request #11 was merged and so never part of it; pull request #12 overtook what it recorded, except the question of columns whose names are not valid Stata names, which is carried to section 6.
+**Record of the end of the archive.** Archive pull request #12 was merged by the maintainer on 21 Oct 2026 at 22:15 AEDT with a merge commit, 06c4b92, whose parents are 3abd168 and 386f8f1, so all 12 of its commits, 37e355f among them, are in the archive's `main`; its head branch was deleted. The archive's branch `claude/laughing-lamport-bh1yt3` held one commit not in `main`, 6446af4, pushed eight minutes after archive pull request #11 was merged and so never part of it; pull request #12 overtook what it recorded, except the question of columns whose names are not valid Stata names, which is carried to section 6. The branch was deleted before the copy (section 5, step 6).
 
 ## 3. How the work is done
 
@@ -61,7 +61,7 @@ Reading a log:
 
 Sessions commit as `Claude <noreply@anthropic.com>`; the maintainer commits as `Warren Holroyd <4807208+w4rhol@users.noreply.github.com>` (CLAUDE.md, hard constraint 5). Two commits in the archive, made from RStudio's Git pane on 20 Oct 2026, carried the maintainer's personal address, because RStudio's Git pane runs git, which takes the author from its configuration (the clone's `.git/config`, then the user's `.gitconfig`, then the system's), and the machine's configuration held that address; GitHub's web pages used the noreply address, because the account keeps its address private there. The remedy, given to the maintainer on 21 Oct 2026, is the noreply address in each clone (`git config user.email ...`) and on the machine (`git config --global user.email ...`), checked with `git var GIT_AUTHOR_IDENT`, and GitHub's settings "Keep my email addresses private" and "Block command line pushes that expose my email" (section 5, step 1).
 
-On 21 Oct 2026 the maintainer asked whether session commits could be made under the maintainer's noreply address. They can: a start-up hook in `.claude/settings.json` would set git's identity in each session's clone and turn off signing, since GitHub marks a commit "Unverified" when it is signed by a key that is not on the account of its committer's address. The maintainer chose to keep the Claude identity for sessions, so that the history shows which commits a session made, and those commits stay signed (CLAUDE.md, hard constraint 5). The same day the maintainer set the noreply address in the machine's git configuration.
+On 21 Oct 2026 the maintainer asked whether session commits could be made under the maintainer's noreply address. They can: a start-up hook in `.claude/settings.json` would set git's identity in each session's clone and turn off signing, since GitHub marks a commit "Unverified" when it is signed by a key that is not on the account of its committer's address. The maintainer chose to keep the Claude identity for sessions, so that the history shows which commits a session made, and those commits stay signed (CLAUDE.md, hard constraint 5). The maintainer set the noreply address in the machine's git configuration the same day, and confirmed it in each clone, with GitHub's two settings, before the copy (section 5, step 1).
 
 ### Rules for writing
 
@@ -190,32 +190,43 @@ The maintainer created `_sqldtaTesting`, ran `tests/create_fixtures.sql` in SSMS
 - The log shows nothing from outside `_sqldtaTesting` beyond what CLAUDE.md, hard constraint 6, allows: the second server's name does not appear, and the first appears where the tests name the server. The clone's folder appears, in the output of `which` and of the first check before test 1, as in every earlier log, which is one more reason that logs stay out of the repository and off GitHub.
 - Two notes from Mata, that `txt` and `vals` may be used before they are set, come from the test file's helper `t_labeldump()`, unchanged from the archive, and are harmless.
 
+### The copy, and the log at e9e6046
+
+- Step 9 was not needed. After the rename, the session that had prepared the branch could reach the new, empty `w4rhol/sqldta`, because a session's access to a repository goes by its name, and it did step 10.
+- Step 10, on 22 Oct 2026: the tree of 2f7d4be was extracted with `git archive` into a new, empty repository, where `git write-tree` gave 531b3386244edd55ad95582a273b561708bed418, the tree the maintainer approved. One commit, e9e6046, with no parent, unsigned, with the maintainer's noreply address as author and committer and the message "sqldta 1.0.0", was pushed to `main` alone.
+- Step 11: GitHub showed one branch, `main`, at e9e6046, credited to the maintainer's account. A fresh clone held one commit, of tree 531b338, and no email address but the two of CLAUDE.md, hard constraint 5. The maintainer cloned the repository afresh, copied `tests/test_config_local.do` into it, and ran the tests on 22 Oct 2026 (Stata 19 SE, ODBC Driver 18). The log's branch and commit lines read `main` and e9e6046; both checks before test 1 passed; 220 passed and 0 failed.
+- Step 12: the repository was made public, with a ruleset on `main`, a description and topics.
+- Step 13, in part: `stata.toc`, `sqldta.pkg` and the seven files that it lists, downloaded from the install URL by the session without signing in, were each the same, byte for byte, as in tree 531b338; and the maintainer installed the package from a clone with `net install`, and it worked. Installing from GitHub in Stata, and `adoupdate`, are still to be tried (section 6).
+- Step 14: the release v1.0.0, "sqldta 1.0.0", was published on 22 Oct 2026, with its tag on e9e6046, as the latest release.
+- Step 15: `w4rhol/sqldta-dev` was archived on 22 Oct 2026, and this record was made in the first pull request of this repository.
+
 ### The steps
 
 | # | Step | Who | State |
 |---|---|---|---|
 | 0 | Merge archive pull request #12 | maintainer | done (section 2) |
-| 1 | Commit identity: the noreply address in each clone and on the machine; GitHub's two email settings | maintainer | the machine's configuration done, 21 Oct 2026; each clone and GitHub's settings to confirm |
+| 1 | Commit identity: the noreply address in each clone and on the machine; GitHub's two email settings | maintainer | done |
 | 2 | Create `_sqldtaTesting` | maintainer | done, 21 Oct 2026 |
 | 3 | Design of the fixtures and tests, approved on 21 Oct 2026; the release tree on the branch | Claude | done |
 | 4 | Test and review round: run `tests/create_fixtures.sql` and the tests; try `examples/site_setup_example.ado` by hand; review the help file; read CLAUDE.md and this file in full; search for terms only the maintainer knows | maintainer, with Claude's fixes | done, 21 Oct 2026: the log passed at ab7e6c9 (220 passed, 0 failed); the example worked; the help file, CLAUDE.md and this file read, and wording in them, the development guide and the comments of the test files changed at the maintainer's request; the maintainer's search found no term |
-| 5 | Final commit on the branch, with the logs; the maintainer approves its tree hash; the fixtures of the earlier design removed from the databases where they were | Claude; maintainer | fixtures removed, 21 Oct 2026; the rest to do |
-| 6 | Delete the archive's branch `claude/laughing-lamport-bh1yt3` | maintainer | to do |
-| 7 | Rename the repository to `sqldta-dev`; change the remote of every clone at once (`git remote set-url origin https://github.com/w4rhol/sqldta-dev.git`) | maintainer | to do |
-| 8 | Create `w4rhol/sqldta`, private and empty | maintainer | to do |
-| 9 | A new session on `w4rhol/sqldta-dev`, which attaches `w4rhol/sqldta` with push access | maintainer | to do |
-| 10 | Copy: the approved tree alone, in a new empty repository, one commit, pushed to `main` | Claude | to do |
-| 11 | Check, fresh clone and test run, while private | Claude; maintainer | to do |
-| 12 | Make public; a ruleset that blocks deletion and force pushes on `main` | maintainer | to do |
-| 13 | `net install` from GitHub into a temporary folder | maintainer | to do |
-| 14 | Release v1.0.0 on GitHub, which makes the tag; the site's copy updated | maintainer; Claude drafts the notes | to do |
-| 15 | Record in this repository; archive `sqldta-dev` | Claude; maintainer | to do |
+| 5 | Final commit on the branch, with the logs; the maintainer approves its tree hash; the fixtures of the earlier design removed from the databases where they were | Claude; maintainer | done: tree 531b338, at 2f7d4be, approved; fixtures removed, 21 Oct 2026 |
+| 6 | Delete the archive's branch `claude/laughing-lamport-bh1yt3` | maintainer | done |
+| 7 | Rename the repository to `sqldta-dev`; change the remote of every clone at once (`git remote set-url origin https://github.com/w4rhol/sqldta-dev.git`) | maintainer | done |
+| 8 | Create `w4rhol/sqldta`, private and empty | maintainer | done |
+| 9 | A new session on `w4rhol/sqldta-dev`, which attaches `w4rhol/sqldta` with push access | maintainer | not needed (above) |
+| 10 | Copy: the approved tree alone, in a new empty repository, one commit, pushed to `main` | Claude | done, 22 Oct 2026: e9e6046 |
+| 11 | Check, fresh clone and test run, while private | Claude; maintainer | done, 22 Oct 2026: 220 passed, 0 failed at e9e6046 |
+| 12 | Make public; a ruleset that blocks deletion and force pushes on `main` | maintainer | done, 22 Oct 2026 |
+| 13 | `net install` from GitHub into a temporary folder | maintainer | in part: the files that GitHub serves checked; installed from a clone; from GitHub, and `adoupdate`, to try |
+| 14 | Release v1.0.0 on GitHub, which makes the tag; the site's copy updated | maintainer; Claude drafts the notes | the release published, 22 Oct 2026; the site's copy to be updated from GitHub |
+| 15 | Record in this repository; archive `sqldta-dev` | Claude; maintainer | archived, 22 Oct 2026; this record in the first pull request |
 | 16 | The benchmark on generated tables, as the first pull request | Claude; maintainer | to do |
 
 The fixtures of the earlier design were dropped from the databases that held them by the maintainer on 21 Oct 2026 (the databases are not named here).
 
 ## 6. Open questions and work after the release
 
+- Installing from GitHub with `net install`, and updating with `adoupdate`, have not yet been tried in Stata (section 5, step 13). When they have, record the result here and in section 5.
 - The benchmark on generated tables, in `sqldta_bench` of `_sqldtaTesting`: tables of many rows, many columns, character columns, date-time columns, bigint and wide decimal columns, many value-label rows, and a columnstore copy, made by `tests/create_bench_tables.sql` with the generator of the fixtures at a scale set at its top; and `tests/benchmark.do`, which compares the clone's `src/` with the latest release, installed from its tag into a temporary folder, and with `odbc load` alone, in one Stata session, switching by the ado-path and `discard`. Its results can be recorded here and in pull requests, because they are on generated data.
 - Whether sqldta should offer to load columns whose names are not valid Stata names under names made valid, such as with `strtoname()`, with the original names in variable labels; the design leaves them out (CLAUDE.md, Column selection). The maintainer is willing to come back to it as an improvement after the first release (archive 6446af4, 21 Oct 2026).
 - Databases with a case-sensitive collation: not supported (CLAUDE.md, Collation); the maintainer may look at them again after the first release.
@@ -258,3 +269,4 @@ Before test 204, the type report shows the server's version, compatibility level
 |---|---|---|---|
 | 17 to 21 Oct 2026 | archive, 35 logs | to 212 passed, 0 failed | archive HANDOVER.md, section 7; the last at archive 37e355f |
 | 21 Oct 2026 | ab7e6c9 (branch `claude/optimistic-edison-kgstwr`), Stata 19 SE, template through ODBC Driver 18 | 220 passed, 0 failed | the first run against `_sqldtaTesting`: both checks before test 1; the generated known table in tests 1 to 35; the README's examples (212 to 221) with the row counts that the Python reproduction of the generator gave (section 5) |
+| 22 Oct 2026 | e9e6046 (`main`; the first commit of this repository, and the release v1.0.0), Stata 19 SE, template through ODBC Driver 18, from a fresh clone | 220 passed, 0 failed | the release's own commit, from a fresh clone: both checks before test 1 passed (section 5) |

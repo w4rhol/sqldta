@@ -196,7 +196,7 @@ Install line for the README: `net install sqldta, from("https://raw.githubuserco
 
 ## Status
 
-- Version 1.0.0, the first public release. The code of `src/` is that of archive 37e355f, whose test log showed 212 passed and 0 failed (Stata 19 SE, ODBC Driver 18), with only comments, version lines, the help file's text and the package description changed since. Earlier logs in the archive covered Stata 18 SE, and ODBC Driver 13 and SQL Server Native Client 11.0 as the template.
-- The tests read only the fixtures that tests/create_fixtures.sql creates in `_sqldtaTesting` (hard constraint 6). Their log at ab7e6c9 on the archive's branch `claude/optimistic-edison-kgstwr` (21 Oct 2026, Stata 19 SE, ODBC Driver 18) showed 220 passed and 0 failed (HANDOVER.md, section 5).
-- Not tried: Stata 16 and 17, which the maintainer does not have; ODBC Driver 17. The dialog is tried by hand only.
+- Version 1.0.0, the first public release, published on 22 Oct 2026 as the release v1.0.0, whose tag is on e9e6046. The code of `src/` is that of archive 37e355f, whose test log showed 212 passed and 0 failed (Stata 19 SE, ODBC Driver 18), with only comments, version lines, the help file's text and the package description changed since. Earlier logs in the archive covered Stata 18 SE, and ODBC Driver 13 and SQL Server Native Client 11.0 as the template.
+- The tests read only the fixtures that tests/create_fixtures.sql creates in `_sqldtaTesting` (hard constraint 6). Their log at e9e6046, from a fresh clone (22 Oct 2026, Stata 19 SE, ODBC Driver 18), showed 220 passed and 0 failed, as did the log at ab7e6c9 on the archive's branch `claude/optimistic-edison-kgstwr` (HANDOVER.md, section 5).
+- Not tried: Stata 16 and 17, which the maintainer does not have; ODBC Driver 17; installing from GitHub with `net install`, and `adoupdate`. The dialog is tried by hand only.
 - Next: a benchmark on generated tables (HANDOVER.md, Open questions and work after the release).
