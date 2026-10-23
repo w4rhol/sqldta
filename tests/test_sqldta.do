@@ -3599,7 +3599,9 @@ capture noisily {
 	global SQLDTA_LABELFALLBACK "`fs'.sqldta_test_oldlabels"
 	sqldta, `fsrc' dataset(`fs'.sqldta_test_same) frame(t223a)
 	assert r(k) == 4 & "`r(links)'" == "`fs'.sqldta_test_samepart"
-	frame t223a: assert `"`: variable label a'"' == "a, filed under `fs'"
+	frame t223a {
+		assert `"`: variable label a'"' == "a, filed under `fs'"
+	}
 	foreach s in `fs' sqldta_alt {
 		sqldta, `fdb' dataset(`s'.sqldta_test_same) `fbnone' frame(t223_`s')
 		local got `=r(N)' `=r(k)' | `r(labelstatus)' `=r(n_vallabels)' `=r(n_varlabels)' `=r(n_formats)' `=r(n_varnotes)' `=r(n_dtanotes)' `=r(n_skipped)'
@@ -3642,7 +3644,9 @@ capture noisily {
 	local got `=r(N)' `=r(k)' `r(links)' | `r(labelstatus)' `=r(n_vallabels)' `=r(n_varlabels)' `=r(n_formats)' `=r(n_varnotes)' `=r(n_dtanotes)' `=r(n_skipped)'
 	display as text "through the settings file: `got'"
 	assert "`got'" == "8 11 ref.sqldta_test_part `fs'.sqldta_test_part2 | applied 0 1 2 7 2 1"
-	frame t224a: assert `"`: data label'"' == "Fixture main table"
+	frame t224a {
+		assert `"`: data label'"' == "Fixture main table"
+	}
 	global SQLDTA_LABELFALLBACK "`fs'.sqldta_no_such_table2"
 	sqldta, `fdb' dataset(`fs'.sqldta_test_main) frame(t224b)
 	assert "`r(labelstatus)'" == "notfound" & "`r(links)'" == ""

@@ -11,7 +11,7 @@ The repository is public, so this file follows hard constraints 3 and 6 of CLAUD
 - Earlier logs, in the archive, covered Stata 18 SE, and ODBC Driver 13 and SQL Server Native Client 11.0 as the template (section 8).
 - Not tried: Stata 16 and 17, which the maintainer does not have; ODBC Driver 17; installing from GitHub with `net install`, and `adoupdate` (section 5, step 13). The dialog is tried by hand only.
 - sqldta 1.1.0 renames the PropertyTypes Format and DataLabel to VariableFormat and DatasetLabel, and reads the old names as well; fixtures version 2. Its log at cc123bb, whose code is that of 27884a5, showed 220 passed and 0 failed, through ODBC Driver 13 as the template; the shorter note of a fallback driver, written after it, is untested. Merged in pull request #2; the tag v1.1.0 is on 63e7f14 (section 9).
-- sqldta 1.2.0, on the branch `claude/quirky-brown-w7d5xx`: backward support for a predecessor's label table, `SQLDTA_LABELFALLBACK`, and `examples/data_properties_view.sql`; fixtures version 3. Untested (section 10).
+- sqldta 1.2.0, on the branch `claude/quirky-brown-w7d5xx`: backward support for a predecessor's label table, `SQLDTA_LABELFALLBACK`, and `examples/data_properties_view.sql`; fixtures version 3. Its log at 600d792 showed 222 passed and 2 failed, both faults of the tests, fixed in the next commit, which awaits a log (section 10).
 
 ## 2. The archive
 
@@ -278,6 +278,7 @@ Before test 204, the type report shows the server's version, compatibility level
 | 23 Oct 2026 | 5e732d3 (branch `claude/eloquent-cannon-xfrjit`, pull request #2), Stata 19 SE, template through ODBC Driver 18 | stopped before test 1 | the files of the package were found; the version of the fixtures could not be read, r(682), the driver's message hidden by `capture` (section 9) |
 | 23 Oct 2026 | 27884a5 (branch `claude/eloquent-cannon-xfrjit`, pull request #2), Stata 19 SE, template through ODBC Driver 18 | stopped before test 1 | the driver's message: the ODBC Driver Manager found no driver of the template's name (SQLSTATE IM002); the maintainer's Stata could not use ODBC Driver 18 that day (section 9) |
 | 23 Oct 2026 | cc123bb (branch `claude/eloquent-cannon-xfrjit`, pull request #2; sqldta 1.1.0; the code of 27884a5, section 9), Stata 19 SE, template through ODBC Driver 13 | 220 passed, 0 failed | fixtures version 2; the renamed types and the old names Format and DataLabel (tests 47, 100, 111, 153, 154, 159, 164, 165, 201) (section 9) |
+| 23 Oct 2026 | 600d792 (branch `claude/quirky-brown-w7d5xx`; sqldta 1.2.0), Stata 19 SE, template through ODBC Driver 13 | 222 passed, 2 failed | fixtures version 3; tests 222 and 225 passed; 223 and 224 failed in the tests themselves (section 10) |
 
 ## 9. Version 1.1.0: VariableFormat and DatasetLabel
 
@@ -348,7 +349,11 @@ On 23 Oct 2026 the maintainer asked that sqldta read the label table of its pred
 | # | Step | Who | State |
 |---|---|---|---|
 | 1 | The change, pushed to `claude/quirky-brown-w7d5xx` | Claude | done |
-| 2 | Pull; run `tests/create_fixtures.sql` in SSMS (fixtures version 3); run `tests/test_sqldta.do`; upload the log | maintainer | to do |
-| 3 | Fix what fails, until a log passes on the head | Claude; maintainer | to do |
+| 2 | Pull; run `tests/create_fixtures.sql` in SSMS (fixtures version 3); run `tests/test_sqldta.do`; upload the log | maintainer | done: the log at 600d792 (below) |
+| 3 | Fix what fails, until a log passes on the head | Claude; maintainer | the faults of the log at 600d792 fixed; a log on the head to come |
 | 4 | The Distribution-Date of `sqldta.pkg` set to the day of the merge, which must be later than 20261023, the date of 1.1.0, for `adoupdate` to see 1.2.0; pull request into `main`, merged with a merge commit | Claude; maintainer | to do |
 | 5 | Release v1.2.0, with its tag on the merge commit | maintainer | to do |
+
+### The logs
+
+- 600d792, 23 Oct 2026, through ODBC Driver 13 as the template: the branch and commit lines matched the pushed head; fixtures version 3; 222 passed and 2 failed. Test 222 passed: the known table, the split table and the types table had the same labels, formats, notes, data labels, linked tables and counts through the fallback as through the fixture label table, and the summary line ended with the fallback's name. Test 225 passed, and `sqldta settings` showed the setting from the file. Tests 223 and 224 failed on a line of the form `frame f: assert` with `: variable label` or `: data label`, which Stata expands in the current frame before the prefix switches (section 4.1, item 9), so the rest of each test did not run; the next commit puts those lines in `frame f { }` blocks, as test 201 does, and changes nothing else. The fixtures are unchanged.
