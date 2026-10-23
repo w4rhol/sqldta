@@ -352,7 +352,7 @@ On 23 Oct 2026 the maintainer asked that sqldta read the label table of its pred
 | 1 | The change, pushed to `claude/quirky-brown-w7d5xx` | Claude | done |
 | 2 | Pull; run `tests/create_fixtures.sql` in SSMS (fixtures version 3); run `tests/test_sqldta.do`; upload the log | maintainer | done: the log at 600d792 (below) |
 | 3 | Fix what fails, until a log passes on the head | Claude; maintainer | done: the log at 7992273 passed |
-| 4 | The Distribution-Date of `sqldta.pkg`; pull request into `main`, merged with a merge commit | Claude; maintainer | the Distribution-Date stays 20261023, the date of the merge at the maintainer's instruction of 23 Oct 2026 and also the date of 1.1.0, so `adoupdate` does not offer 1.2.0 to a copy of 1.1.0, which `net install sqldta, replace` updates; pull request opened 23 Oct 2026 |
+| 4 | The Distribution-Date of `sqldta.pkg`; pull request into `main`, merged with a merge commit | Claude; maintainer | the Distribution-Date stays 20261023, the date of the merge at the maintainer's instruction of 23 Oct 2026 and also the date of 1.1.0, so `adoupdate` does not offer 1.2.0 to a copy of 1.1.0, which the README's install line with `replace` added updates; pull request #3 opened 23 Oct 2026 |
 | 5 | Release v1.2.0, with its tag on the merge commit | maintainer | to do |
 
 ### The logs
