@@ -237,7 +237,7 @@ The dialog lists the servers in `SQLDTA_SERVERS`, the databases in `SQLDTA_DATAB
 | `server() is required because no server is set` | `SQLDTA_SERVERS` is not set in the settings file or as a global; check with `sqldta settings` that the file is found |
 | `Data source name not found and no default driver specified` | the template names a driver that is not installed, or no template is set and there is no ODBC data source named after the server |
 | a message about the certificate chain or SSL | ODBC Driver 18 does not trust the server's certificate; add `TrustServerCertificate=yes;` to the template, or have a trusted certificate installed on the server |
-| `note: sqldta connects ... through connection template 3 of 5` | the machine lacks the drivers of the earlier templates; install the preferred driver, or accept the fallback |
+| `note: connected to ... via fallback driver ...` | the earlier templates did not connect, usually because the machine lacks their drivers; `sqldta settings` shows the result of each; install the preferred driver, or accept the fallback |
 | `label table ... not found or not readable, so no labels applied` | the label table does not exist in that database, has another name or schema, or the login cannot read it |
 | `label table ... lacks columns of its layout` | the label table is not of the layout above; a view can give it that layout |
 | `columns left out because their names are not valid Stata names` | rename those columns in a view, with `AS` |
