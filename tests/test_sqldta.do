@@ -749,21 +749,28 @@ if "`t_wrong'" != "" | "`t_pkgfiles'" == "" {
 display as text "files of the package, all found in `srcdir': `t_pkgfiles'"
 
 * Second, the fixtures must be of the version that this file expects, which
-* tests/create_fixtures.sql writes in sqldta_test_version.
+* tests/create_fixtures.sql writes in sqldta_test_version. The query runs
+* under capture noisily, so that a failure shows the driver's message, which
+* tells a table that does not exist from a connection that failed.
 local t_precs `"$TEST_CONNECTION"'
 local t_precs : subinstr local t_precs "%server%" "$TEST_SERVER", all
 local t_precs : subinstr local t_precs "%database%" "$TEST_FIXDATABASE", all
 capture frame drop t_pre
 frame create t_pre
-capture frame t_pre: odbc load, clear connectionstring(`"`t_precs'"') exec(`"SELECT FixtureVersion FROM [$TEST_FIXDATABASE].[$TEST_FIXSCHEMA].[sqldta_test_version]"')
+capture noisily frame t_pre: odbc load, clear connectionstring(`"`t_precs'"') exec(`"SELECT FixtureVersion FROM [$TEST_FIXDATABASE].[$TEST_FIXSCHEMA].[sqldta_test_version]"')
 local rc = _rc
 local t_fv
 if `rc' == 0 frame t_pre: local t_fv = FixtureVersion[1]
 capture frame drop t_pre
 if "`t_fv'" != "$TEST_FIXVERSION" {
-	if `rc' display as error "the version of the fixtures could not be read from $TEST_FIXDATABASE.$TEST_FIXSCHEMA.sqldta_test_version: r(`rc')"
-	else display as error "the fixtures are version `t_fv', and this file expects version $TEST_FIXVERSION"
-	display as error "run tests/create_fixtures.sql in SSMS, then this file again"
+	if `rc' {
+		display as error "the version of the fixtures could not be read from $TEST_FIXDATABASE.$TEST_FIXSCHEMA.sqldta_test_version: r(`rc'), with the driver's message above"
+		display as error "if the table does not exist, run tests/create_fixtures.sql in SSMS and let it finish; otherwise check the connection; then run this file again"
+	}
+	else {
+		display as error "the fixtures are version `t_fv', and this file expects version $TEST_FIXVERSION"
+		display as error "run tests/create_fixtures.sql in SSMS, then this file again"
+	}
 	log close sqldtatest
 	exit 459
 }

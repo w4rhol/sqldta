@@ -48,7 +48,7 @@ Reading a log:
 
 - Logs are in Windows-1252, not UTF-8, so file-reading tools may refuse them or show replacement characters; `grep -a` reads them.
 - `grep -a -n -E "^FAIL|SQLDTA TESTS|^Failed|^branch:|^commit:" <log>` gives the summary. The output of a failing test is just above its FAIL line.
-- Before test 1, the log names the files of the package found in the clone's `src/` and the version of the fixtures; if either check fails, the run stops there with a message.
+- Before test 1, the log names the files of the package found in the clone's `src/` and the version of the fixtures; if either check fails, the run stops there with a message. When the version cannot be read, the driver's message is shown above it (since the change after the log at 5e732d3, section 9).
 - The type report starts at the lines that begin `TYPE REPORT`.
 
 ### Branches, pull requests and releases
@@ -272,6 +272,7 @@ Before test 204, the type report shows the server's version, compatibility level
 | 17 to 21 Oct 2026 | archive, 35 logs | to 212 passed, 0 failed | archive HANDOVER.md, section 7; the last at archive 37e355f |
 | 21 Oct 2026 | ab7e6c9 (branch `claude/optimistic-edison-kgstwr`), Stata 19 SE, template through ODBC Driver 18 | 220 passed, 0 failed | the first run against `_sqldtaTesting`: both checks before test 1; the generated known table in tests 1 to 35; the README's examples (212 to 221) with the row counts that the Python reproduction of the generator gave (section 5) |
 | 22 Oct 2026 | e9e6046 (`main`; the first commit of this repository, and the release v1.0.0), Stata 19 SE, template through ODBC Driver 18, from a fresh clone | 220 passed, 0 failed | the release's own commit, from a fresh clone: both checks before test 1 passed (section 5) |
+| 23 Oct 2026 | 5e732d3 (branch `claude/eloquent-cannon-xfrjit`), Stata 19 SE, template through ODBC Driver 18 | stopped before test 1 | the files of the package were found; the version of the fixtures could not be read, r(682), the driver's message hidden by `capture` (section 9) |
 
 ## 9. Version 1.1.0: VariableFormat and DatasetLabel
 
@@ -300,12 +301,16 @@ The site where sqldta was first written reads its label table of another layout 
 
 Order at the site: sqldta 1.1.0 reads both names, but 1.0.0 reads only the old ones. So the site's copy of sqldta, and any copy that users installed themselves, is updated to 1.1.0 first, and the view is changed after; changed before, it would leave copies at 1.0.0 without formats and data labels, without a message.
 
+### The logs
+
+- 5e732d3, 23 Oct 2026: the branch and commit lines matched the pushed head. The run stopped at the second check before test 1: `odbc load` of the version of the fixtures failed with r(682), and the log opened and closed in the same second. The maintainer reported that `tests/create_fixtures.sql` had run in SSMS with the expected counts (1,156 rows in the fixture label table and in `ref.DataProperties`, 1,000, 20,000, 8, 6, 12 and 2). The code of the check is the same as at e9e6046, whose log passed it. Had the script not run at all, the check would have found version 1; r(682) at once means that the table did not exist when the query ran, as while the script is still running, between its drops and the end of its second batch, or that the connection was refused. The check ran `odbc load` under `capture`, which hid the driver's message, so the log cannot tell which. The next commit runs it under `capture noisily` and names both causes in its message; nothing else changed.
+
 ### Steps
 
 | # | Step | Who | State |
 |---|---|---|---|
-| 1 | The change, in one commit, pushed to `claude/eloquent-cannon-xfrjit` | Claude | done |
-| 2 | Pull; run `tests/create_fixtures.sql` in SSMS (fixtures version 2); run `tests/test_sqldta.do`; upload the log | maintainer | to do |
+| 1 | The change, in one commit, pushed to `claude/eloquent-cannon-xfrjit` | Claude | done: 5e732d3 |
+| 2 | Pull; run `tests/create_fixtures.sql` in SSMS (fixtures version 2); run `tests/test_sqldta.do`; upload the log | maintainer | fixtures run, 23 Oct 2026; the log at 5e732d3 stopped before test 1 (above); to run again after the check shows the driver's message |
 | 3 | Fix what fails, until a log passes on the head | Claude; maintainer | to do |
 | 4 | Pull request into `main`, merged with a merge commit | Claude; maintainer | to do |
 | 5 | Release v1.1.0 on GitHub, with its tag on the merge commit; the site's copy updated | maintainer; Claude drafts the notes | to do |
