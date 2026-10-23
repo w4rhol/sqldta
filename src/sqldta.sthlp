@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.1.0 23oct2026}{...}
+{* *! version 1.2.0 23oct2026}{...}
 {vieweralsosee "[D] odbc" "help odbc"}{...}
 {vieweralsosee "[D] frames" "help frames"}{...}
 {vieweralsosee "[D] label" "help label"}{...}
@@ -418,6 +418,10 @@ without one; {cmd:dbo} if not set{p_end}
 {p2col:{cmd:SQLDTA_LABELTABLE}}default of {opt labeltable()}, as
 {it:schema}{cmd:.}{it:table} or {it:table}, which is then in {cmd:ref};
 {cmd:ref.DataProperties} if not set{p_end}
+{p2col:{cmd:SQLDTA_LABELFALLBACK}}for backward compatibility, a label table of
+the layout of sqldta's predecessor, as {it:schema}{cmd:.}{it:table} or
+{it:table}, read in place of the label table when that is not found; not set
+by default{p_end}
 {p2col:{cmd:SQLDTA_CONNECTION}}connection template, or in the settings file
 several, tried in order, or {cmd:dsn}; see
 {help sqldta##connection:Connection}{p_end}
@@ -1115,8 +1119,8 @@ asks for the earlier method{p_end}
 {pstd}
 {cmd:sqldta settings} stores the settings file in {cmd:r(file)}; each setting
 in force in {cmd:r(servers)}, {cmd:r(databases)}, {cmd:r(defaultdb)},
-{cmd:r(dlgremember)}, {cmd:r(dataschema)}, {cmd:r(labeltable)} and
-{cmd:r(dttext)}; the connection templates in {cmd:r(connection1)},
+{cmd:r(dlgremember)}, {cmd:r(dataschema)}, {cmd:r(labeltable)},
+{cmd:r(labelfallback)} and {cmd:r(dttext)}; the connection templates in {cmd:r(connection1)},
 {cmd:r(connection2)} and so on, with their number in {cmd:r(nconnections)};
 the numbers of the lines of the file passed over in {cmd:r(ignored)}; and, for
 the server in {cmd:r(server)}, the connection used in {cmd:r(connection)}, its

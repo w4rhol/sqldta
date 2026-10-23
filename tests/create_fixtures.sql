@@ -26,6 +26,8 @@
 --     label step, and tables of the same name in two schemas;
 --   - sqldta_test.sqldta_test_otherlayout, a label table without the columns
 --     of the layout, and dbo.sqldta_test_dflt, a table in the default schema;
+--   - sqldta_test.sqldta_test_oldlabels, a label table of the predecessor's
+--     layout, for the tests of SQLDTA_LABELFALLBACK;
 --   - sqldta_test.sqldta_test_version, which the tests read before test 1.
 -- It drops every object it creates first, and nothing else.
 --
@@ -93,6 +95,7 @@ IF OBJECT_ID(N'sqldta_test.sqldta_test_samepart', N'U') IS NOT NULL DROP TABLE s
 IF OBJECT_ID(N'sqldta_alt.sqldta_test_samepart', N'U') IS NOT NULL DROP TABLE sqldta_alt.sqldta_test_samepart;
 IF OBJECT_ID(N'ref.sqldta_test_samex', N'U') IS NOT NULL DROP TABLE ref.sqldta_test_samex;
 IF OBJECT_ID(N'sqldta_test.sqldta_test_otherlayout', N'U') IS NOT NULL DROP TABLE sqldta_test.sqldta_test_otherlayout;
+IF OBJECT_ID(N'sqldta_test.sqldta_test_oldlabels', N'U') IS NOT NULL DROP TABLE sqldta_test.sqldta_test_oldlabels;
 IF OBJECT_ID(N'dbo.sqldta_test_dflt', N'U') IS NOT NULL DROP TABLE dbo.sqldta_test_dflt;
 IF OBJECT_ID(N'sqldta_test.sqldta_test_version', N'U') IS NOT NULL DROP TABLE sqldta_test.sqldta_test_version;
 GO
@@ -120,7 +123,7 @@ END');
 -- The seed of the generated tables, and the version of the fixtures, which
 -- tests/test_sqldta.do expects
 DECLARE @seed bigint = 20261021;
-DECLARE @version int = 2;
+DECLARE @version int = 3;
 
 -- The layout of a label table (CLAUDE.md, Metadata contract): the rows of a
 -- table are those whose TableSchema and TableName are its schema and name.
@@ -827,6 +830,57 @@ CREATE TABLE sqldta_test.sqldta_test_otherlayout (
 INSERT INTO sqldta_test.sqldta_test_otherlayout (TableName, ItemName, ItemText) VALUES
 (N'sqldta_test_main', N'num', N'A label in a layout that sqldta does not read');
 
+-- sqldta_test_oldlabels: a label table of the predecessor's layout, which
+-- sqldta reads when SQLDTA_LABELFALLBACK names it and the label table is not
+-- found (tests 222 to 225). Its rows are filed by the table's name alone, in
+-- Dataset. It holds a copy of the rows of the fixture label table for the
+-- known table, the split table sqldta_test_main with its linked table
+-- ref.sqldta_test_part, and the types table, with their DataType values: the
+-- types table's rows keep the current names, and the others take the
+-- predecessor's (Opt, Var, NoteVar, NoteDta) and the earlier Format and
+-- DtaLabel, so that the table mixes the two, as a site's may. Loaded through
+-- it, these tables get the same labels as through the fixture label table.
+-- Four rows for sqldta_test_same, which apply to the tables of that name in
+-- sqldta_test and sqldta_alt alike, have a type in lower case and a value
+-- label whose DataType is not INT: loaded through it, each of the two tables
+-- gets value-label sets 1, variable labels 1, dataset notes 1, label rows
+-- skipped 0, the data label 'Same name, from the earlier layout', and no
+-- linked table. 89 rows.
+CREATE TABLE sqldta_test.sqldta_test_oldlabels (
+    Dataset   varchar(128) NOT NULL,
+    VarName   varchar(128) NULL,
+    LabelType varchar(20)  NOT NULL,
+    DataType  varchar(20)  NULL,
+    DataCode  varchar(50)  NULL,
+    LabelName varchar(max) NULL
+);
+INSERT INTO sqldta_test.sqldta_test_oldlabels (Dataset, VarName, LabelType, DataType, DataCode, LabelName)
+SELECT TableName,
+       ColumnName,
+       CASE WHEN TableName = N'sqldta_test_types' THEN PropertyType
+            ELSE CASE PropertyType
+                     WHEN N'ValueLabel'     THEN N'Opt'
+                     WHEN N'VariableLabel'  THEN N'Var'
+                     WHEN N'VariableFormat' THEN N'Format'
+                     WHEN N'VariableNote'   THEN N'NoteVar'
+                     WHEN N'DatasetNote'    THEN N'NoteDta'
+                     WHEN N'DatasetLabel'   THEN N'DtaLabel'
+                     ELSE PropertyType
+                 END
+       END,
+       DataType,
+       PropertyCode,
+       PropertyText
+FROM sqldta_test.sqldta_test_labels
+WHERE (TableSchema = N'sqldta_test'
+       AND TableName IN (N'sqldta_test_known', N'sqldta_test_main', N'sqldta_test_types'))
+   OR (TableSchema = N'ref' AND TableName = N'sqldta_test_part');
+INSERT INTO sqldta_test.sqldta_test_oldlabels (Dataset, VarName, LabelType, DataType, DataCode, LabelName) VALUES
+('sqldta_test_same', 'a',  'var',          NULL,      NULL, 'a, from the earlier layout'),
+('sqldta_test_same', 'a',  'Opt',          'VARCHAR', '1',  'one, from the earlier layout'),
+('sqldta_test_same', NULL, 'NoteDta',      NULL,      NULL, 'Note from the earlier layout'),
+('sqldta_test_same', NULL, 'DatasetLabel', NULL,      NULL, 'Same name, from the earlier layout');
+
 -- dbo.sqldta_test_dflt: a table in dbo, for test 158, which names it without
 -- a schema
 CREATE TABLE dbo.sqldta_test_dflt (id int NOT NULL, d int NULL);
@@ -846,7 +900,8 @@ INSERT INTO sqldta_test.sqldta_test_version (FixtureVersion, GeneratorSeed) VALU
 
 -- The number of rows of each fixture table. Expected: sqldta_test_labels
 -- 1,156, sqldta_test_known 1,000, sqldta_test_adm 20,000, sqldta_test_main 8,
--- sqldta_test_types 6, sqldta_test_dt 12, sqldta_test_wide 2.
+-- sqldta_test_types 6, sqldta_test_dt 12, sqldta_test_wide 2,
+-- ref.DataProperties 1,156, sqldta_test_oldlabels 89.
 SELECT N'sqldta_test_labels' AS fixture, COUNT(*) AS n_rows FROM sqldta_test.sqldta_test_labels
 UNION ALL SELECT N'sqldta_test_known', COUNT(*) FROM sqldta_test.sqldta_test_known
 UNION ALL SELECT N'sqldta_test_adm', COUNT(*) FROM sqldta_test.sqldta_test_adm
@@ -854,7 +909,8 @@ UNION ALL SELECT N'sqldta_test_main', COUNT(*) FROM sqldta_test.sqldta_test_main
 UNION ALL SELECT N'sqldta_test_types', COUNT(*) FROM sqldta_test.sqldta_test_types
 UNION ALL SELECT N'sqldta_test_dt', COUNT(*) FROM sqldta_test.sqldta_test_dt
 UNION ALL SELECT N'sqldta_test_wide', COUNT(*) FROM sqldta_test.sqldta_test_wide
-UNION ALL SELECT N'ref.DataProperties', COUNT(*) FROM ref.DataProperties;
+UNION ALL SELECT N'ref.DataProperties', COUNT(*) FROM ref.DataProperties
+UNION ALL SELECT N'sqldta_test_oldlabels', COUNT(*) FROM sqldta_test.sqldta_test_oldlabels;
 GO
 
 SET NOEXEC OFF;
