@@ -1,6 +1,6 @@
 /*
-*! version 1.0.0 21oct2026
-*! sqldta.dlg: dialog for sqldta 1.0.0; its helper is sqldta_dlg.ado
+*! version 1.1.0 23oct2026
+*! sqldta.dlg: dialog for sqldta 1.1.0; its helper is sqldta_dlg.ado
 *! Builds: sqldta [if], database() dataset([schema.]table) [server() frame() clear
 *!   labels() labeltable() sqlselect() sqlwhere() sqlrand() lowercase nodecformat
 *!   unicode()]
@@ -105,13 +105,13 @@ BEGIN
   CHECKBOX ck_variables  @   +20    @    ., label("Variable labels") default(1)  ///
                                             tooltip("labels(variables): a label of up to 80 characters for each variable, from the VariableLabel rows of the label table")
   CHECKBOX ck_formats    260 395  230    ., label("Display formats") default(1)  ///
-                                            tooltip("labels(formats): display formats, such as %9.2fc or %tdDD/NN/CCYY, from the Format rows of the label table; they replace the formats that sqldta sets")
+                                            tooltip("labels(formats): display formats, such as %9.2fc or %tdDD/NN/CCYY, from the VariableFormat rows of the label table; they replace the formats that sqldta sets")
   CHECKBOX ck_varnotes   @   +20    @    ., label("Variable notes") default(1)   ///
                                             tooltip("labels(varnotes): notes on variables, from the VariableNote rows of the label table; type notes to list them")
   CHECKBOX ck_dtanotes   500 395  240    ., label("Dataset notes") default(1)    ///
                                             tooltip("labels(dtanotes): notes on the dataset as a whole, from the DatasetNote rows of the label table; type notes to list them")
   CHECKBOX ck_datalabel  @   +20    @    ., label("Dataset label") default(1)    ///
-                                            tooltip("labels(datalabel): the label of the dataset, which label data sets and describe shows, from a DataLabel row of the label table; without it the label is database.schema.table")
+                                            tooltip("labels(datalabel): the label of the dataset, which label data sets and describe shows, from a DatasetLabel row of the label table; without it the label is database.schema.table")
 END
 
 // No label has an ampersand: Windows takes it as the mark of a keyboard

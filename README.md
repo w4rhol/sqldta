@@ -176,7 +176,7 @@ To update an installed copy, type `adoupdate sqldta, update`. The [setup guide](
 
 ## Status
 
-Version 1.0.0. Tested on Stata 19 SE and Stata 18 SE for Windows, through ODBC Driver 18 and the "SQL Server" driver of Windows, and on Stata 19 SE through ODBC Driver 13 and SQL Server Native Client 11.0 as well. Not yet tested on Stata 16 or 17.
+Version 1.1.0. Tested on Stata 19 SE and Stata 18 SE for Windows, through ODBC Driver 18 and the "SQL Server" driver of Windows, and on Stata 19 SE through ODBC Driver 13 and SQL Server Native Client 11.0 as well. Not yet tested on Stata 16 or 17.
 
 ## Author
 

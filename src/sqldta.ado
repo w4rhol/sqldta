@@ -1,4 +1,4 @@
-*! version 1.0.0 21oct2026
+*! version 1.1.0 23oct2026
 program define sqldta, rclass
 	version 16
 
@@ -286,7 +286,7 @@ program define sqldta, rclass
 	_sqldta_convert `target' "`cols'" "`sqltypes'" "`precs'" "`scales'" "`decformat'"
 	local converted `r(converted)'
 
-	* The default data label; a DataLabel row replaces it
+	* The default data label; a DatasetLabel row replaces it
 	local dlabel = usubstr(`"`source'"', 1, 80)
 	frame `target': label data `"`dlabel'"'
 
@@ -415,14 +415,14 @@ end
 * Reads the argument of labels(): all (the default), none, or any of the
 * keywords values, variables, formats, varnotes, dtanotes and datalabel, in
 * any case. Returns r(labels), the keywords in a fixed order, and r(types),
-* the PropertyType of each: ValueLabel, VariableLabel, Format, VariableNote,
-* DatasetNote and DataLabel.
+* the PropertyType of each: ValueLabel, VariableLabel, VariableFormat,
+* VariableNote, DatasetNote and DatasetLabel.
 program define _sqldta_labeltypes, rclass
 	version 16
 	args spec
 
 	local keys values variables formats varnotes dtanotes datalabel
-	local ltypes ValueLabel VariableLabel Format VariableNote DatasetNote DataLabel
+	local ltypes ValueLabel VariableLabel VariableFormat VariableNote DatasetNote DatasetLabel
 	local spec = ustrlower(`"`spec'"')
 	local nw : word count `spec'
 	if `nw' == 0 | `"`spec'"' == "all" local spec `keys'
@@ -992,9 +992,9 @@ end
 *     which _sqldta_colexpr sends as text, become doubles with %10.0g.
 *   - Other decimal and numeric columns get %(p+2).(s)f for precision p of 15
 *     or less and scale s, unless decformat holds nodecformat.
-* Format rows in the label table are applied later and so override these
-* formats. Returns r(converted), the columns converted from strings, and the
-* date-time columns.
+* VariableFormat rows in the label table are applied later and so override
+* these formats. Returns r(converted), the columns converted from strings, and
+* the date-time columns.
 program define _sqldta_convert, rclass
 	version 16
 	args target cols sqltypes precs scales decformat
@@ -1131,11 +1131,15 @@ program define _sqldta_labels, rclass
 		local tables `tables' (TableSchema = N'`s'' AND TableName = N'`t'')
 	}
 
-	* One query for all requested label types
+	* One query for all requested label types. Format and DataLabel, the
+	* names of VariableFormat and DatasetLabel in sqldta 1.0.0, are read as
+	* well, so that label tables made for it keep working.
 	local where
 	foreach t of local types {
 		if `"`where'"' != "" local where `where' OR
 		local where `where' PropertyType = N'`t''
+		if "`t'" == "VariableFormat" local where `where' OR PropertyType = N'Format'
+		if "`t'" == "DatasetLabel" local where `where' OR PropertyType = N'DataLabel'
 	}
 	local sql SELECT DISTINCT ///
 		LTRIM(RTRIM(CAST(ColumnName AS nvarchar(128)))) AS ColumnName, ///
@@ -1256,7 +1260,7 @@ program define _sqldta_apply, rclass
 			if _rc local ++n_skipped
 			else local ++n_varlabels
 		}
-		else if "`type'" == "format" {
+		else if "`type'" == "variableformat" {
 			* The text must be one valid format, so that it cannot name other
 			* variables as well
 			capture confirm format `macval(_sqldta_x`j')'
@@ -1268,7 +1272,7 @@ program define _sqldta_apply, rclass
 			if _rc local ++n_skipped
 			else local ++n_formats
 		}
-		else if "`type'" == "datalabel" {
+		else if "`type'" == "datasetlabel" {
 			mata: st_local("text", usubstr(st_local("_sqldta_x`j'"), 1, 80))
 			capture frame `target': label data `"`macval(text)'"'
 			if _rc local ++n_skipped
@@ -1369,9 +1373,10 @@ void _sqldta_present()
 // _sqldta_apply. Each row is matched to a variable of frame target without
 // regard to case (vars and lvars hold its variables and the same names in
 // lower case, strvars its string variables, and allcols every column of the
-// table in lower case). As in the earlier loop: dataset notes and the data
-// label go to _dta; a row whose ColumnName is empty or names no column counts
-// as skipped, and one for a column not loaded is passed over; a ValueLabel row
+// table in lower case). The types Format and DataLabel, the names in sqldta
+// 1.0.0, are read as VariableFormat and DatasetLabel. As in the earlier loop:
+// dataset notes and the data label go to _dta; a row whose ColumnName is
+// empty or names no column counts as skipped, and one for a column not loaded is passed over; a ValueLabel row
 // for a string variable is passed over, and one whose PropertyCode is not a
 // whole number counts as skipped; a row of another type counts as skipped. The
 // ValueLabel rows that label define is sure to accept, with a code within the
@@ -1423,7 +1428,9 @@ void _sqldta_lblprep(string scalar target, string scalar vars, string scalar lva
 	k = 0
 	for (i = 1; i <= n; i++) {
 		t = ty[i]
-		if (t == "datasetnote" | t == "datalabel") v = "_dta"
+		if (t == "format") t = "variableformat"
+		else if (t == "datalabel") t = "datasetlabel"
+		if (t == "datasetnote" | t == "datasetlabel") v = "_dta"
 		else {
 			lv = ustrlower(vn[i])
 			if (!asarray_contains(A, lv)) {
@@ -1454,7 +1461,7 @@ void _sqldta_lblprep(string scalar target, string scalar vars, string scalar lva
 				continue
 			}
 		}
-		else if (t != "variablelabel" & t != "format" & t != "datalabel" & t != "variablenote" & t != "datasetnote") {
+		else if (t != "variablelabel" & t != "variableformat" & t != "datasetlabel" & t != "variablenote" & t != "datasetnote") {
 			nskip++
 			continue
 		}

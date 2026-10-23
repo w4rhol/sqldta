@@ -1,4 +1,4 @@
-*! version 1.0.0 21oct2026
+*! version 1.1.0 23oct2026
 * sqldta_dlg: helper for the sqldta dialog, sqldta.dlg
 *
 *   sqldta_dlg query databases, server(name)
@@ -171,7 +171,7 @@ end
 * number of rows comes from sys.partitions and is missing for a view. Returns
 * r(rc), r(columns) (the variables a load would give, in order), r(textcols)
 * (the char, varchar and text columns), r(links), r(dropped),
-* r(labelstatus), r(datalabel) (empty unless a DataLabel row gives one),
+* r(labelstatus), r(datalabel) (empty unless a DatasetLabel row gives one),
 * r(n_notes), r(note1), r(note2) and so on, r(rows), and r(text), the
 * description that the dialog shows, made from the others. The text of each
 * column, which query column returns, is kept until the next description,
@@ -781,7 +781,7 @@ string scalar _sqldta_dlg_text()
 	status = st_local("labelstatus")
 	if (status == "notfound") t = _sqldta_dlg_sentence(t, "The label table was not found, so there is no description")
 	else if (status == "failed") t = _sqldta_dlg_sentence(t, "The label table could not be read, so there is no description")
-	else if (st_local("datalabel") == "" & n == 0) t = _sqldta_dlg_sentence(t, "The label table has no DataLabel or DatasetNote row for this table")
+	else if (st_local("datalabel") == "" & n == 0) t = _sqldta_dlg_sentence(t, "The label table has no DatasetLabel or DatasetNote row for this table")
 	t = _sqldta_dlg_sentence(t, st_local("datalabel"))
 	for (i = 1; i <= n; i++) {
 		t = _sqldta_dlg_sentence(t, st_local("note" + strofreal(i)))

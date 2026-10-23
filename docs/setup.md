@@ -162,12 +162,12 @@ The label table is optional. It holds the labels, formats and notes of the table
 |---|---|
 | `TableSchema` | schema of the table or view the row applies to |
 | `TableName` | name of that table or view |
-| `ColumnName` | column name; empty for DatasetNote and DataLabel rows; for Link rows, the key column |
-| `PropertyType` | `ValueLabel` (value label), `VariableLabel` (variable label), `Format` (display format), `VariableNote` (variable note), `DatasetNote` (dataset note), `DataLabel` (data label) or `Link` (linked table of a split table), in any case |
+| `ColumnName` | column name; empty for DatasetNote and DatasetLabel rows; for Link rows, the key column |
+| `PropertyType` | `ValueLabel` (value label), `VariableLabel` (variable label), `VariableFormat` (display format), `VariableNote` (variable note), `DatasetNote` (dataset note), `DatasetLabel` (data label) or `Link` (linked table of a split table), in any case |
 | `PropertyCode` | for ValueLabel rows, the integer code; for VariableNote and DatasetNote rows, optionally, the order in which the notes are applied |
-| `PropertyText` | the label or note text; for Format rows, the format, such as `%9.2fc`; for DataLabel rows, the data label; for Link rows, the linked table as `table` (in the schema of the main table) or `schema.table` |
+| `PropertyText` | the label or note text; for VariableFormat rows, the format, such as `%9.2fc`; for DatasetLabel rows, the data label; for Link rows, the linked table as `table` (in the schema of the main table) or `schema.table` |
 
-The rows of a table are those whose TableSchema and TableName are its schema and name, so tables of the same name in different schemas have rows of their own. All the columns are of character types, so that other software can read the same table; `sqldta` checks that a ValueLabel row's PropertyCode is a whole number before it applies it. Other columns may be present and are not read. `help sqldta` sets out how each kind of row is applied and when a row is skipped.
+The rows of a table are those whose TableSchema and TableName are its schema and name, so tables of the same name in different schemas have rows of their own. Rows of the types `Format` and `DataLabel`, the names that `sqldta` 1.0.0 used, are read as `VariableFormat` and `DatasetLabel` rows, so a label table or view made for that version keeps working; new rows should use the new names. All the columns are of character types, so that other software can read the same table; `sqldta` checks that a ValueLabel row's PropertyCode is a whole number before it applies it. Other columns may be present and are not read. `help sqldta` sets out how each kind of row is applied and when a row is skipped.
 
 For example:
 
@@ -188,10 +188,10 @@ CREATE INDEX IX_DataProperties_Table ON ref.DataProperties (TableSchema, TableNa
 | dbo | MyTable | sex | ValueLabel | 1 | Male |
 | dbo | MyTable | sex | ValueLabel | 2 | Female |
 | dbo | MyTable | sex | VariableLabel | | Sex of the patient |
-| dbo | MyTable | amount | Format | | %9.2fc |
+| dbo | MyTable | amount | VariableFormat | | %9.2fc |
 | dbo | MyTable | age | VariableNote | 1 | Age at admission |
 | dbo | MyTable | | DatasetNote | | Extracted each month |
-| dbo | MyTable | | DataLabel | | Hospital admissions |
+| dbo | MyTable | | DatasetLabel | | Hospital admissions |
 | dbo | MyTable | id | Link | | MyTablePart2 |
 
 The index is optional. `sqldta` selects label rows by TableSchema, TableName and PropertyType, for each load and for each table chosen in the dialog, so on a large label table the index saves reading the whole table each time. It needs those columns to be of a type with a length, such as `varchar(128)` or `nvarchar(128)`, not `varchar(max)` or `nvarchar(max)`. `sqldta` compares them with Unicode text, so in a database whose collation is a SQL collation, with a name that begins with `SQL_`, the index is used only if they are `nvarchar`; with a Windows collation, such as `Latin1_General_CI_AS`, `varchar` columns can use it too.
