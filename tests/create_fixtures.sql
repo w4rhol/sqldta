@@ -120,7 +120,7 @@ END');
 -- The seed of the generated tables, and the version of the fixtures, which
 -- tests/test_sqldta.do expects
 DECLARE @seed bigint = 20261021;
-DECLARE @version int = 1;
+DECLARE @version int = 2;
 
 -- The layout of a label table (CLAUDE.md, Metadata contract): the rows of a
 -- table are those whose TableSchema and TableName are its schema and name.
@@ -271,16 +271,16 @@ INSERT INTO sqldta_test.sqldta_test_badnames ([01 First Column], [Second Column]
 -- sqldta_test_main with labels(variables formats varnotes dtanotes datalabel),
 -- or with labels(all), since it has no value labels: variable labels 1,
 -- display formats 2, variable notes 7, dataset notes 2, label rows skipped 1
--- (the row whose format is not valid), and the data label from DataLabel.
+-- (the row whose format is not valid), and the data label from DatasetLabel.
 INSERT INTO sqldta_test.sqldta_test_labels (TableSchema, TableName, ColumnName, PropertyType, DataType, PropertyCode, PropertyText) VALUES
 (N'sqldta_test', N'sqldta_test_main', N'id',     N'Link',     NULL, NULL,  N'ref.sqldta_test_part'),
 (N'sqldta_test', N'sqldta_test_main', N'id',     N'Link',     NULL, NULL,  N'sqldta_test_part2'),
 (N'sqldta_test', N'sqldta_test_bad',  N'id',     N'Link',     NULL, NULL,  N'sqldta_test.sqldta_test_dupkey'),
 (N'ref', N'sqldta_test_part', N'extra1', N'VariableLabel',      NULL, NULL,  N'Extra one, labelled under the linked table'),
-(N'sqldta_test', N'sqldta_test_main', NULL,      N'DataLabel', NULL, NULL,  N'Fixture main table'),
-(N'sqldta_test', N'sqldta_test_main', N'amount', N'Format',   NULL, NULL,  N'%9.2fc'),
-(N'sqldta_test', N'sqldta_test_main', N'dob',    N'Format',   NULL, NULL,  N'%tdDD/NN/CCYY'),
-(N'sqldta_test', N'sqldta_test_main', N'num',    N'Format',   NULL, NULL,  N'not a format'),
+(N'sqldta_test', N'sqldta_test_main', NULL,      N'DatasetLabel', NULL, NULL,  N'Fixture main table'),
+(N'sqldta_test', N'sqldta_test_main', N'amount', N'VariableFormat', NULL, NULL,  N'%9.2fc'),
+(N'sqldta_test', N'sqldta_test_main', N'dob',    N'VariableFormat', NULL, NULL,  N'%tdDD/NN/CCYY'),
+(N'sqldta_test', N'sqldta_test_main', N'num',    N'VariableFormat', NULL, NULL,  N'not a format'),
 (N'sqldta_test', N'sqldta_test_main', N'num',    N'VariableNote',  NULL, N'2',  N'Second note on num'),
 (N'sqldta_test', N'sqldta_test_main', N'num',    N'VariableNote',  NULL, N'10', N'Third note on num'),
 (N'sqldta_test', N'sqldta_test_main', N'num',    N'VariableNote',  NULL, N'1',  N'First note on num'),
@@ -487,8 +487,10 @@ INSERT INTO sqldta_test.sqldta_test_dt (id, xdatetime, xdatetime2, xdatetime2_3,
      '08:00:00.5', '08:00:00', '2021-06-15');
 
 -- Label rows for the data-type tables: a VariableLabel row for every column,
--- giving its type, and ValueLabel, Format, VariableNote, DatasetNote and
--- DataLabel rows for the types table
+-- giving its type, and ValueLabel, VariableFormat, VariableNote, DatasetNote
+-- and data label rows for the types table. The format of xdate and the data
+-- label are in rows of the types Format and DataLabel, the names that sqldta
+-- 1.0.0 used for VariableFormat and DatasetLabel, which sqldta still reads.
 INSERT INTO sqldta_test.sqldta_test_labels (TableSchema, TableName, ColumnName, PropertyType, DataType, PropertyCode, PropertyText) VALUES
 (N'sqldta_test', N'sqldta_test_types', N'xbit',              N'VariableLabel', NULL, NULL, N'bit'),
 (N'sqldta_test', N'sqldta_test_types', N'xtinyint',          N'VariableLabel', NULL, NULL, N'tinyint'),
@@ -528,7 +530,7 @@ INSERT INTO sqldta_test.sqldta_test_labels (TableSchema, TableName, ColumnName, 
 (N'sqldta_test', N'sqldta_test_types', N'xbit',      N'ValueLabel', N'INT', N'1',   N'Yes'),
 (N'sqldta_test', N'sqldta_test_types', N'xtinyint',  N'ValueLabel', NULL,   N'2',   N'two, with no DataType'),
 (N'sqldta_test', N'sqldta_test_types', N'xvarchar',  N'ValueLabel', N'INT', N'1',   N'A string column, so passed over and not counted'),
-(N'sqldta_test', N'sqldta_test_types', N'xdatetime', N'Format',  NULL, NULL, N'%tcCCYY-NN-DD_HH:MM:SS.sss'),
+(N'sqldta_test', N'sqldta_test_types', N'xdatetime', N'VariableFormat', NULL, NULL, N'%tcCCYY-NN-DD_HH:MM:SS.sss'),
 (N'sqldta_test', N'sqldta_test_types', N'xdate',     N'Format',  NULL, NULL, N'%tdCCYY-NN-DD'),
 (N'sqldta_test', N'sqldta_test_types', N'xdatetime', N'VariableNote', NULL, NULL, N'Note on a datetime column'),
 (N'sqldta_test', N'sqldta_test_types', NULL,         N'DatasetNote', NULL, NULL, N'Each column has a different SQL Server data type'),
@@ -554,13 +556,13 @@ INSERT INTO sqldta_test.sqldta_test_labels (TableSchema, TableName, ColumnName, 
 
 -- sqldta_test_view is a view of three columns of sqldta_test_main, for the
 -- tests of the dialog helper, which lists tables and views, and of loading a
--- view. Its DataLabel and DatasetNote rows contain double quotes, a backquote and
--- a dollar sign, so that the description the helper returns can be compared
+-- view. Its DatasetLabel and DatasetNote rows contain double quotes, a backquote
+-- and a dollar sign, so that the description the helper returns can be compared
 -- exactly with the rows.
 EXEC (N'CREATE VIEW sqldta_test.sqldta_test_view AS SELECT id, num, grp FROM sqldta_test.sqldta_test_main');
 
 INSERT INTO sqldta_test.sqldta_test_labels (TableSchema, TableName, ColumnName, PropertyType, DataType, PropertyCode, PropertyText) VALUES
-(N'sqldta_test', N'sqldta_test_view', NULL, N'DataLabel', NULL, NULL, N'View of the "main" fixture table'),
+(N'sqldta_test', N'sqldta_test_view', NULL, N'DatasetLabel', NULL, NULL, N'View of the "main" fixture table'),
 (N'sqldta_test', N'sqldta_test_view', NULL, N'DatasetNote',  NULL, N'2',  N'Second note on the view'),
 (N'sqldta_test', N'sqldta_test_view', NULL, N'DatasetNote',  NULL, N'1',  N'First note on the view, with "double quotes", a `backquote'' and $HOME');
 
@@ -676,7 +678,7 @@ INSERT INTO sqldta_test.sqldta_test_labels (TableSchema, TableName, ColumnName, 
 (N'sqldta_test', N'sqldta_test_same',     N'id', N'Link',          NULL, NULL, N'sqldta_test_samepart'),
 (N'sqldta_test', N'sqldta_test_same',     N'a',  N'VariableLabel', NULL, NULL, N'a, filed under sqldta_test'),
 (N'sqldta_test', N'sqldta_test_same',     N'a',  N'ValueLabel',    NULL, N'1', N'one, filed under sqldta_test'),
-(N'sqldta_test', N'sqldta_test_same',     NULL,  N'DataLabel',     NULL, NULL, N'Same name, in sqldta_test'),
+(N'sqldta_test', N'sqldta_test_same',     NULL,  N'DatasetLabel',  NULL, NULL, N'Same name, in sqldta_test'),
 (N'sqldta_test', N'sqldta_test_same',     NULL,  N'DatasetNote',   NULL, NULL, N'Note filed under sqldta_test'),
 (N'sqldta_test', N'sqldta_test_samepart', N'pr', N'VariableLabel', NULL, NULL, N'pr, filed under sqldta_test.sqldta_test_samepart'),
 (N'sqldta_alt',  N'sqldta_test_same',     N'id', N'Link',          NULL, NULL, N'sqldta_test_samepart'),
@@ -684,7 +686,7 @@ INSERT INTO sqldta_test.sqldta_test_labels (TableSchema, TableName, ColumnName, 
 (N'sqldta_alt',  N'sqldta_test_same',     N'a',  N'VariableLabel', NULL, NULL, N'a, filed under sqldta_alt'),
 (N'sqldta_alt',  N'sqldta_test_same',     N'a',  N'ValueLabel',    NULL, N'1', N'one, filed under sqldta_alt'),
 (N'sqldta_alt',  N'sqldta_test_same',     N'c',  N'VariableLabel', NULL, NULL, N'c, filed under sqldta_alt'),
-(N'sqldta_alt',  N'sqldta_test_same',     NULL,  N'DataLabel',     NULL, NULL, N'Same name, in sqldta_alt'),
+(N'sqldta_alt',  N'sqldta_test_same',     NULL,  N'DatasetLabel',  NULL, NULL, N'Same name, in sqldta_alt'),
 (N'sqldta_alt',  N'sqldta_test_same',     NULL,  N'DatasetNote',   NULL, NULL, N'Note filed under sqldta_alt'),
 (N'sqldta_alt',  N'sqldta_test_samepart', N'pa', N'VariableLabel', NULL, NULL, N'pa, filed under sqldta_alt.sqldta_test_samepart'),
 (N'ref',         N'sqldta_test_samex',    N'x',  N'VariableLabel', NULL, NULL, N'x, filed under ref.sqldta_test_samex'),

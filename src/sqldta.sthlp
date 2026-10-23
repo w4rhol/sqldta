@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.0.0 21oct2026}{...}
+{* *! version 1.1.0 23oct2026}{...}
 {vieweralsosee "[D] odbc" "help odbc"}{...}
 {vieweralsosee "[D] frames" "help frames"}{...}
 {vieweralsosee "[D] label" "help label"}{...}
@@ -101,8 +101,8 @@ observations and variables loaded, the source table as
 the target frame and, unless {cmd:labels(none)} was given, the number of labels and
 notes applied and of label rows skipped, or that the label table was not
 found. It sets the data label of the frame to
-{it:database}{cmd:.}{it:schema}{cmd:.}{it:table}, unless a DataLabel row replaces
-it.
+{it:database}{cmd:.}{it:schema}{cmd:.}{it:table}, unless a DatasetLabel row
+replaces it.
 
 
 {marker options}{...}
@@ -168,10 +168,10 @@ more of these words, in any order and in any case:
 {p2colset 9 22 24 2}{...}
 {p2col:{cmd:values}}value labels, from ValueLabel rows{p_end}
 {p2col:{cmd:variables}}variable labels, from VariableLabel rows{p_end}
-{p2col:{cmd:formats}}display formats, from Format rows{p_end}
+{p2col:{cmd:formats}}display formats, from VariableFormat rows{p_end}
 {p2col:{cmd:varnotes}}notes on variables, from VariableNote rows{p_end}
 {p2col:{cmd:dtanotes}}notes on the dataset, from DatasetNote rows{p_end}
-{p2col:{cmd:datalabel}}the data label, from a DataLabel row{p_end}
+{p2col:{cmd:datalabel}}the data label, from a DatasetLabel row{p_end}
 {p2colreset}{...}
 
 {pmore}
@@ -584,17 +584,17 @@ as the data. It holds one row for each label item, in these columns:
 {p2line}
 {p2col:{cmd:TableSchema}}schema of the table or view the row applies to{p_end}
 {p2col:{cmd:TableName}}name of that table or view{p_end}
-{p2col:{cmd:ColumnName}}column name; empty for DatasetNote and DataLabel rows;
-for Link rows, the key column{p_end}
+{p2col:{cmd:ColumnName}}column name; empty for DatasetNote and DatasetLabel
+rows; for Link rows, the key column{p_end}
 {p2col:{cmd:PropertyType}}{cmd:ValueLabel} (value label), {cmd:VariableLabel}
-(variable label), {cmd:Format} (display format), {cmd:VariableNote} (variable
-note), {cmd:DatasetNote} (dataset note), {cmd:DataLabel} (data label) or
-{cmd:Link} (linked table of a split table), in any case{p_end}
+(variable label), {cmd:VariableFormat} (display format), {cmd:VariableNote}
+(variable note), {cmd:DatasetNote} (dataset note), {cmd:DatasetLabel} (data
+label) or {cmd:Link} (linked table of a split table), in any case{p_end}
 {p2col:{cmd:PropertyCode}}for ValueLabel rows, the integer code; for
 VariableNote and DatasetNote rows, optionally, the order in which the notes are
 applied{p_end}
-{p2col:{cmd:PropertyText}}the label or note text; for Format rows, the format,
-such as {cmd:%9.2fc}; for DataLabel rows, the data label; for Link rows, the
+{p2col:{cmd:PropertyText}}the label or note text; for VariableFormat rows, the
+format, such as {cmd:%9.2fc}; for DatasetLabel rows, the data label; for Link rows, the
 linked table as {it:table} (in the schema of the main table) or
 {it:schema}{cmd:.}{it:table}{p_end}
 {p2line}
@@ -603,7 +603,9 @@ linked table as {it:table} (in the schema of the main table) or
 {pstd}
 The rows of a table are those whose TableSchema and TableName are its schema
 and name, compared under the database's collation, so tables of the same name
-in different schemas of one database have rows of their own. All the columns
+in different schemas of one database have rows of their own. Rows of the types
+{cmd:Format} and {cmd:DataLabel}, the names that {cmd:sqldta} 1.0.0 used, are
+read as {cmd:VariableFormat} and {cmd:DatasetLabel} rows. All the columns
 are of character types, such as {cmd:nvarchar}, so that other software can read
 the same table; {cmd:sqldta} checks that the PropertyCode of a ValueLabel row is
 a whole number before it applies the row. The table may have other columns,
@@ -618,10 +620,10 @@ with TableSchema {cmd:dbo}:
 {col 9}MyTable{col 19}sex{col 30}ValueLabel{col 45}1{col 59}Male
 {col 9}MyTable{col 19}sex{col 30}ValueLabel{col 45}2{col 59}Female
 {col 9}MyTable{col 19}sex{col 30}VariableLabel{col 59}Sex of the patient
-{col 9}MyTable{col 19}amount{col 30}Format{col 59}%9.2fc
+{col 9}MyTable{col 19}amount{col 30}VariableFormat{col 59}%9.2fc
 {col 9}MyTable{col 19}age{col 30}VariableNote{col 45}1{col 59}Age at admission
 {col 9}MyTable{col 30}DatasetNote{col 59}Extracted each month
-{col 9}MyTable{col 30}DataLabel{col 59}Hospital admissions
+{col 9}MyTable{col 30}DatasetLabel{col 59}Hospital admissions
 {col 9}MyTable{col 19}id{col 30}Link{col 59}MyTablePart2
 
 {pstd}
@@ -660,7 +662,7 @@ after the variable, which is attached to it with {cmd:label values}. A set that
 cannot be attached is dropped, and its rows count as skipped.{p_end}
 {p 8 11 2}o{space 2}{bf:VariableLabel} ({cmd:variables}): PropertyText is the variable label. Stata allows at
 most 80 characters.{p_end}
-{p 8 11 2}o{space 2}{bf:Format} ({cmd:formats}): PropertyText is a display format, such as
+{p 8 11 2}o{space 2}{bf:VariableFormat} ({cmd:formats}): PropertyText is a display format, such as
 {cmd:%9.2fc} or {cmd:%tdDD/NN/CCYY}. It must be one valid format that suits the
 type of the variable; otherwise the row is skipped.{p_end}
 {p 8 11 2}o{space 2}{bf:VariableNote} ({cmd:varnotes}) and {bf:DatasetNote} ({cmd:dtanotes}): PropertyText is a note on the
@@ -671,7 +673,7 @@ number, and otherwise in text order. Notes without a PropertyCode follow, in
 the order in which
 SQL Server returns them, which is not guaranteed. Unlike the {cmd:notes}
 command, {cmd:sqldta} does not replace {cmd:TS} with a time stamp.{p_end}
-{p 8 11 2}o{space 2}{bf:DataLabel} ({cmd:datalabel}): PropertyText is the data label, in place of
+{p 8 11 2}o{space 2}{bf:DatasetLabel} ({cmd:datalabel}): PropertyText is the data label, in place of
 {it:database}{cmd:.}{it:schema}{cmd:.}{it:table}. The first 80 characters are
 used.{p_end}
 
@@ -789,7 +791,7 @@ rounded, so 23:59:59.9999999 loads as 23:59:59.999 on the same day. A
 Server shows them: .000, .003 and .007 in each 10 milliseconds. Stata's
 earliest date is 01jan0100, so a {cmd:datetime2} or {cmd:datetimeoffset} value
 before it loads as missing. The format {cmd:%tc} does not show milliseconds; a
-Format row such as {cmd:%tcCCYY-NN-DD_HH:MM:SS.sss} shows them.
+VariableFormat row such as {cmd:%tcCCYY-NN-DD_HH:MM:SS.sss} shows them.
 
 {pstd}
 A {cmd:datetimeoffset} value loads as the clock time it was stored with, and
@@ -823,8 +825,8 @@ A {cmd:decimal} or {cmd:numeric} column of precision {it:p} of 15 or less and
 scale {it:s} gets the format {cmd:%}{it:p+2}{cmd:.}{it:s}{cmd:f}, so
 {cmd:decimal(9,2)} gets {cmd:%11.2f}. A double holds about 15 significant
 digits, so a wider column keeps {cmd:%10.0g}, and its values may not be exact.
-{opt nodecformat} turns these formats off. A Format row in the label table
-replaces any format that {cmd:sqldta} sets.
+{opt nodecformat} turns these formats off. A VariableFormat row in the label
+table replaces any format that {cmd:sqldta} sets.
 
 {pstd}
 A {cmd:decimal} or {cmd:numeric} column of precision over 15 and a scale above
@@ -937,7 +939,7 @@ by the dialog only: {opt database()} is still required in a command.
 {pstd}
 A server, database or schema that is not listed can be typed; {bf:Refresh lists}
 then lists what depends on it. Choosing a table shows its description: the
-data label and dataset notes from its DataLabel and DatasetNote rows, the
+data label and dataset notes from its DatasetLabel and DatasetNote rows, the
 approximate number of rows (not shown for a view), the number of columns that
 can be loaded, its linked tables and any columns that would be left out. The
 description is read from the label table given on the {bf:Advanced} tab, or

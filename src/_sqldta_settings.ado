@@ -1,4 +1,4 @@
-*! version 1.0.0 21oct2026
+*! version 1.1.0 23oct2026
 * _sqldta_settings: the settings of sqldta, for sqldta, for its dialog helper
 * sqldta_dlg and for _sqldta_odbc
 *
@@ -307,12 +307,15 @@ void _sqldta_cfg_keep(string scalar server, string scalar key, string scalar con
 // is later), or when no template connected (none)
 void _sqldta_cfg_note(string scalar what, string scalar server, real scalar k, real scalar n, string scalar conn)
 {
+	string scalar d
+
 	if (what == "later") {
-		printf("{txt}note: sqldta connects to %s through connection template %g of %g,\n",
-			_sqldta_cfg_esc(server), k, n)
-		printf("{txt}  %s,\n", _sqldta_cfg_what(conn))
-		printf("{txt}  because the templates before it did not connect; type {cmd:sqldta settings}\n")
-		printf("{txt}  to see each result\n")
+		d = _sqldta_cfg_driver(conn)
+		if (ustrlower(conn) == "dsn") d = "the ODBC data source named after the server"
+		else if (d != "") d = "driver " + d
+		else d = "connection template " + strofreal(k) + " of " + strofreal(n)
+		printf("{txt}note: connected to %s via fallback %s;\n", _sqldta_cfg_esc(server), d)
+		printf("{txt}  see {cmd:sqldta settings}\n")
 	}
 	else {
 		printf("{txt}note: none of the %g connection templates connected to %s,\n", n, _sqldta_cfg_esc(server))
@@ -369,10 +372,20 @@ void _sqldta_cfg_show(string scalar fn, real scalar conn)
 // driver that a template names, or a template that names none
 string scalar _sqldta_cfg_what(string scalar conn)
 {
+	string scalar d
+
 	if (ustrlower(conn) == "dsn") return("the ODBC data source named after the server")
-	if (ustrregexm(conn, "(?i)driver\s*=\s*\{([^}]*)\}")) return("which names the driver " + _sqldta_cfg_esc(ustrregexs(1)))
-	if (ustrregexm(conn, "(?i)driver\s*=\s*([^;]*)")) return("which names the driver " + _sqldta_cfg_esc(strtrim(ustrregexs(1))))
+	d = _sqldta_cfg_driver(conn)
+	if (d != "") return("which names the driver " + d)
 	return("which names no driver")
+}
+
+// The driver that a template names, written as SMCL, or "" if it names none
+string scalar _sqldta_cfg_driver(string scalar conn)
+{
+	if (ustrregexm(conn, "(?i)driver\s*=\s*\{([^}]*)\}")) return(_sqldta_cfg_esc(ustrregexs(1)))
+	if (ustrregexm(conn, "(?i)driver\s*=\s*([^;]*)")) return(_sqldta_cfg_esc(strtrim(ustrregexs(1))))
+	return("")
 }
 
 // A template with the value of PWD or Password replaced by ****, for display

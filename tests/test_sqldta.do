@@ -106,7 +106,7 @@ global TEST_LABELTABLE  "DataProperties"
 global TEST_FIXTABLE    "sqldta_test_labels"
 * The version of the fixtures that this file expects, which
 * tests/create_fixtures.sql writes in sqldta_test_version
-global TEST_FIXVERSION  1
+global TEST_FIXVERSION  2
 
 display as text "test database: $TEST_FIXDATABASE"
 * The driver of each log: the template names it, and the DSN's driver is the
@@ -749,21 +749,28 @@ if "`t_wrong'" != "" | "`t_pkgfiles'" == "" {
 display as text "files of the package, all found in `srcdir': `t_pkgfiles'"
 
 * Second, the fixtures must be of the version that this file expects, which
-* tests/create_fixtures.sql writes in sqldta_test_version.
+* tests/create_fixtures.sql writes in sqldta_test_version. The query runs
+* under capture noisily, so that a failure shows the driver's message, which
+* tells a table that does not exist from a connection that failed.
 local t_precs `"$TEST_CONNECTION"'
 local t_precs : subinstr local t_precs "%server%" "$TEST_SERVER", all
 local t_precs : subinstr local t_precs "%database%" "$TEST_FIXDATABASE", all
 capture frame drop t_pre
 frame create t_pre
-capture frame t_pre: odbc load, clear connectionstring(`"`t_precs'"') exec(`"SELECT FixtureVersion FROM [$TEST_FIXDATABASE].[$TEST_FIXSCHEMA].[sqldta_test_version]"')
+capture noisily frame t_pre: odbc load, clear connectionstring(`"`t_precs'"') exec(`"SELECT FixtureVersion FROM [$TEST_FIXDATABASE].[$TEST_FIXSCHEMA].[sqldta_test_version]"')
 local rc = _rc
 local t_fv
 if `rc' == 0 frame t_pre: local t_fv = FixtureVersion[1]
 capture frame drop t_pre
 if "`t_fv'" != "$TEST_FIXVERSION" {
-	if `rc' display as error "the version of the fixtures could not be read from $TEST_FIXDATABASE.$TEST_FIXSCHEMA.sqldta_test_version: r(`rc')"
-	else display as error "the fixtures are version `t_fv', and this file expects version $TEST_FIXVERSION"
-	display as error "run tests/create_fixtures.sql in SSMS, then this file again"
+	if `rc' {
+		display as error "the version of the fixtures could not be read from $TEST_FIXDATABASE.$TEST_FIXSCHEMA.sqldta_test_version: r(`rc'), with the driver's message above"
+		display as error "if the table does not exist, run tests/create_fixtures.sql in SSMS and let it finish; otherwise check the connection; then run this file again"
+	}
+	else {
+		display as error "the fixtures are version `t_fv', and this file expects version $TEST_FIXVERSION"
+		display as error "run tests/create_fixtures.sql in SSMS, then this file again"
+	}
 	log close sqldtatest
 	exit 459
 }
@@ -1418,8 +1425,8 @@ capture noisily {
 }
 t_result skipped_unselected `=_rc'
 
-* 47. DataLabel and Format rows: the data label and two display formats; the
-*     row with a format that is not valid counts as skipped
+* 47. DatasetLabel and VariableFormat rows: the data label and two display
+*     formats; the row with a format that is not valid counts as skipped
 t_reset
 capture noisily {
 	sqldta, `fmain' labels(variables formats dtanotes datalabel) frame(t47)
@@ -1514,7 +1521,8 @@ t_result if_sqlwhere `=_rc'
 * ---------------------------------------------------------------------------
 * SQL Server data types, in the fixture tables sqldta_test_types and
 * sqldta_test_rare. Tests that check the display formats that sqldta sets use
-* labels(none), because Format rows in the label table replace those formats.
+* labels(none), because VariableFormat rows in the label table replace those
+* formats.
 * ---------------------------------------------------------------------------
 
 local ftypes `fsrc' dataset(`fs'.sqldta_test_types)
@@ -1583,7 +1591,10 @@ t_result types_if_refused `=_rc'
 *      one of them from a ValueLabel row without a DataType, a variable label on
 *      each column, a date format, the dataset note and the data label. Rows
 *      for columns not selected, and the ValueLabel row for the string column
-*      xvarchar, are passed over and not counted as skipped.
+*      xvarchar, are passed over and not counted as skipped. The date format
+*      and the data label are in rows of the types Format and DataLabel, the
+*      names that sqldta 1.0.0 used, which are read as VariableFormat and
+*      DatasetLabel.
 t_reset
 capture noisily {
 	sqldta, `ftypes' sqlselect(id xbit xtinyint xint xvarchar xdate) frame(t100) `alllab'
@@ -1855,7 +1866,7 @@ capture noisily {
 t_result types_select_alias `=_rc'
 
 * 111. Whole tables: every column arrives, and the label rows of the types
-*      table are all applied; its Format row for xdatetime replaces %tc
+*      table are all applied; its VariableFormat row for xdatetime replaces %tc
 t_reset
 capture noisily {
 	sqldta, `ftypes' frame(t111a) `alllab'
@@ -2092,7 +2103,7 @@ capture noisily {
 }
 t_result names_default_schema `=_rc'
 
-* 159. A view loads like a table, with its own DataLabel and DatasetNote rows
+* 159. A view loads like a table, with its own DatasetLabel and DatasetNote rows
 t_reset
 capture noisily {
 	sqldta, `fsrc' dataset(`fs'.sqldta_test_view) frame(t159)
@@ -2198,7 +2209,7 @@ capture noisily {
 t_result dlg_describe `=_rc'
 
 * 165. The description of a view: no number of rows, and the text of its
-*      DataLabel and DatasetNote rows exactly, with double quotes, a backquote and a
+*      DatasetLabel and DatasetNote rows exactly, with double quotes, a backquote and a
 *      dollar sign, alone and in the text the dialog shows
 t_reset
 capture noisily {
