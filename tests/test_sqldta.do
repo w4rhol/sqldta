@@ -106,7 +106,7 @@ global TEST_LABELTABLE  "DataProperties"
 global TEST_FIXTABLE    "sqldta_test_labels"
 * The version of the fixtures that this file expects, which
 * tests/create_fixtures.sql writes in sqldta_test_version
-global TEST_FIXVERSION  2
+global TEST_FIXVERSION  3
 
 display as text "test database: $TEST_FIXDATABASE"
 * The driver of each log: the template names it, and the DSN's driver is the
@@ -134,7 +134,7 @@ file close `cfgfh'
 adopath ++ "$T_CFGDIR"
 
 * Save the site's own SQLDTA globals; each test starts from a fixed baseline
-local sqldta_globals SERVERS DATABASES DATASCHEMA LABELTABLE CONNECTION DTTEXT DEFAULTDB DLGREMEMBER
+local sqldta_globals SERVERS DATABASES DATASCHEMA LABELTABLE LABELFALLBACK CONNECTION DTTEXT DEFAULTDB DLGREMEMBER
 foreach g of local sqldta_globals {
 	global T_SAVED_`g' `"${SQLDTA_`g'}"'
 }
@@ -168,7 +168,7 @@ program define t_reset
 	* template, an empty settings file, and no connection kept by
 	* _sqldta_settings
 	frames reset
-	foreach g in SERVERS DATABASES DATASCHEMA LABELTABLE DTTEXT DEFAULTDB DLGREMEMBER {
+	foreach g in SERVERS DATABASES DATASCHEMA LABELTABLE LABELFALLBACK DTTEXT DEFAULTDB DLGREMEMBER {
 		global SQLDTA_`g'
 	}
 	global SQLDTA_CONNECTION `"$TEST_CONNECTION"'
@@ -478,13 +478,16 @@ end
 program define t_samelabels
 	* Asserts that frames a and b hold the same variables, in the same order,
 	* with the same display formats, variable labels, value labels and notes,
-	* and the same data label and dataset notes
-	args a b
+	* and the same data label and dataset notes. With sorted, the notes of
+	* each variable and of the dataset are compared in sorted order, for
+	* notes without a PropertyCode, whose order SQL Server does not guarantee.
+	args a b sorted
+	local srt = "`sorted'" != ""
 	frame `a': local da : data label
 	frame `b': local db : data label
 	display as text `"  data labels: `da' | `db'"'
-	frame `a': mata: t_LA = t_labeldump()
-	frame `b': mata: t_LB = t_labeldump()
+	frame `a': mata: t_LA = t_labeldump(`srt')
+	frame `b': mata: t_LB = t_labeldump(`srt')
 	mata: st_numscalar("t_same", t_LA == t_LB)
 	if scalar(t_same) == 0 {
 		mata: printf("{txt}  `a': %s\n  `b': %s\n", t_LA, t_LB)
@@ -670,31 +673,36 @@ real scalar t_isin(string colvector A, string colvector B)
 	return(1)
 }
 
-// The notes of v (a variable, or _dta) in the current frame, as one string
-string scalar t_notedump(string scalar v)
+// The notes of v (a variable, or _dta) in the current frame, as one string,
+// in sorted order if sorted is 1
+string scalar t_notedump(string scalar v, real scalar sorted)
 {
 	string scalar s
+	string colvector t
 	real scalar j, n
 
 	n = strtoreal(st_global(v + "[note0]"))
 	if (n >= .) n = 0
+	t = J(n, 1, "")
+	for (j = 1; j <= n; j++) t[j] = st_global(v + "[note" + strofreal(j) + "]")
+	if (sorted & n > 1) t = sort(t, 1)
 	s = ""
-	for (j = 1; j <= n; j++) s = s + " note" + strofreal(j) + "=" + st_global(v + "[note" + strofreal(j) + "]")
+	for (j = 1; j <= n; j++) s = s + " note" + strofreal(j) + "=" + t[j]
 	return(s)
 }
 
 // The labels of the current frame as one string: the dataset notes, then for
 // each variable, in order, its name, display format, variable label, value
-// label with its codes and texts, and notes. The data label is compared
-// apart, by t_samelabels.
-string scalar t_labeldump()
+// label with its codes and texts, and notes, in sorted order if sorted is 1.
+// The data label is compared apart, by t_samelabels.
+string scalar t_labeldump(real scalar sorted)
 {
 	string scalar s, v, vl
 	string colvector txt
 	real colvector vals
 	real scalar i, j
 
-	s = "_dta:" + t_notedump("_dta")
+	s = "_dta:" + t_notedump("_dta", sorted)
 	for (j = 1; j <= st_nvar(); j++) {
 		v = st_varname(j)
 		s = s + " | " + v + " " + st_varformat(j) + " [" + st_varlabel(j) + "]"
@@ -704,7 +712,7 @@ string scalar t_labeldump()
 			s = s + " " + vl + ":"
 			for (i = 1; i <= rows(vals); i++) s = s + " " + strofreal(vals[i], "%21.0g") + "=" + txt[i]
 		}
-		s = s + t_notedump(v)
+		s = s + t_notedump(v, sorted)
 	}
 	return(s)
 }
@@ -3358,7 +3366,7 @@ capture noisily {
 	_sqldta_settings
 	assert "`r(ignored)'" == ""
 	assert "`r(servers)'" == "MYSERVER" & "`r(dataschema)'" == "dbo"
-	assert "`r(labeltable)'" == "ref.DataProperties"
+	assert "`r(labeltable)'" == "ref.DataProperties" & "`r(labelfallback)'" == ""
 	assert "`r(dlgremember)'" == "0" & "`r(dttext)'" == "0"
 	assert `"`r(databases)'"' == "" & `"`r(defaultdb)'"' == ""
 	assert r(nconnections) == 5
@@ -3543,16 +3551,148 @@ capture noisily {
 }
 t_result readme_sample `=_rc'
 
-* 222. After clear mata, sqldta either still works or asks for discard; after
+* ---------------------------------------------------------------------------
+* Tests 222 to 225: SQLDTA_LABELFALLBACK, a label table of the predecessor's
+* layout, here the fixture table sqldta_test_oldlabels, which sqldta reads in
+* place of the label table when that is not found
+* ---------------------------------------------------------------------------
+
+local fbnone labeltable("`fs'.sqldta_no_such_table")
+
+* 222. Through the fallback, the known table, the split table and the types
+*      table get the same labels, display formats, notes, data label, linked
+*      tables and counts as through the fixture label table, from rows of the
+*      predecessor's types and of the current ones, with DataType not read;
+*      with labels(none), the same linked tables. The notes of the known
+*      table have no PropertyCode, so they are compared in sorted order.
+t_reset
+capture noisily {
+	global SQLDTA_LABELFALLBACK "`fs'.sqldta_test_oldlabels"
+	foreach d in known main types {
+		local srt = cond("`d'" == "known", "sorted", "")
+		sqldta, `fdb' dataset(`fs'.sqldta_test_`d') `fix' frame(t222a)
+		local want `=r(N)' `=r(k)' `r(links)' | `r(labelstatus)' `=r(n_vallabels)' `=r(n_varlabels)' `=r(n_formats)' `=r(n_varnotes)' `=r(n_dtanotes)' `=r(n_skipped)'
+		sqldta, `fdb' dataset(`fs'.sqldta_test_`d') `fbnone' frame(t222b)
+		local got `=r(N)' `=r(k)' `r(links)' | `r(labelstatus)' `=r(n_vallabels)' `=r(n_varlabels)' `=r(n_formats)' `=r(n_varnotes)' `=r(n_dtanotes)' `=r(n_skipped)'
+		display as text "sqldta_test_`d': `want' || `got'"
+		assert "`got'" == "`want'" & "`r(labelstatus)'" == "applied"
+		t_samelabels t222a t222b `srt'
+		frame drop t222a
+		frame drop t222b
+	}
+	sqldta, `fdb' dataset(`fs'.sqldta_test_main) `fbnone' frame(t222c) labels(none)
+	assert "`r(labelstatus)'" == "none"
+	assert "`r(links)'" == "ref.sqldta_test_part `fs'.sqldta_test_part2"
+}
+t_result fallback_same `=_rc'
+
+* 223. The fallback is read only when the label table is not found: through
+*      the fixture label table, sqldta_test_same gets its own rows and linked
+*      table, as in test 201. Through a label table that does not exist, the
+*      tables sqldta_test_same in sqldta_test and in sqldta_alt both get the
+*      fallback's rows filed under that name, whatever the schema, among them
+*      a type in lower case and a value label whose DataType is not INT, and
+*      no linked table, since the fallback has no Link row for them. Without
+*      the setting, the label table is not found, as in test 11.
+t_reset
+capture noisily {
+	global SQLDTA_LABELFALLBACK "`fs'.sqldta_test_oldlabels"
+	sqldta, `fsrc' dataset(`fs'.sqldta_test_same) frame(t223a)
+	assert r(k) == 4 & "`r(links)'" == "`fs'.sqldta_test_samepart"
+	frame t223a {
+		assert `"`: variable label a'"' == "a, filed under `fs'"
+	}
+	foreach s in `fs' sqldta_alt {
+		sqldta, `fdb' dataset(`s'.sqldta_test_same) `fbnone' frame(t223_`s')
+		local got `=r(N)' `=r(k)' | `r(labelstatus)' `=r(n_vallabels)' `=r(n_varlabels)' `=r(n_formats)' `=r(n_varnotes)' `=r(n_dtanotes)' `=r(n_skipped)'
+		display as text "`s'.sqldta_test_same: `got'"
+		assert "`r(links)'" == ""
+		if "`s'" == "`fs'" assert "`got'" == "3 3 | applied 1 1 0 0 1 0"
+		else assert "`got'" == "2 3 | applied 1 1 0 0 1 0"
+		frame t223_`s' {
+			assert `"`: data label'"' == "Same name, from the earlier layout"
+			assert `"`: variable label a'"' == "a, from the earlier layout"
+			assert `"`: label (a) 1'"' == "one, from the earlier layout"
+			assert `"`_dta[note0]'"' == "1"
+			assert `"`_dta[note1]'"' == "Note from the earlier layout"
+		}
+	}
+	global SQLDTA_LABELFALLBACK
+	sqldta, `fdb' dataset(`fs'.sqldta_test_same) `fbnone' frame(t223c)
+	assert "`r(labelstatus)'" == "notfound"
+}
+t_result fallback_when `=_rc'
+
+* 224. SQLDTA_LABELFALLBACK in the settings file, named without a schema, so
+*      in the schema of the default label table, which the file names as a
+*      table that does not exist: sqldta without labeltable() reads the
+*      fallback, with the counts that the fixture label table gives;
+*      _sqldta_settings and sqldta settings return it; a global replaces the
+*      line. A fallback that does not exist is not found either. A fallback
+*      without the columns of the predecessor's layout, the fixture table
+*      sqldta_test_otherlayout, gives a note, r(labelstatus) failed and no
+*      linked tables; with labels(none), none.
+t_reset
+capture noisily {
+	mata: t_writecfg("$T_CFGFILE", ("SQLDTA_LABELTABLE `fs'.sqldta_no_such_table" \ ///
+		"SQLDTA_LABELFALLBACK sqldta_test_oldlabels"), 0, 0)
+	_sqldta_settings
+	assert "`r(labelfallback)'" == "sqldta_test_oldlabels"
+	sqldta settings
+	assert "`r(labelfallback)'" == "sqldta_test_oldlabels"
+	sqldta, `fdb' dataset(`fs'.sqldta_test_main) frame(t224a)
+	local got `=r(N)' `=r(k)' `r(links)' | `r(labelstatus)' `=r(n_vallabels)' `=r(n_varlabels)' `=r(n_formats)' `=r(n_varnotes)' `=r(n_dtanotes)' `=r(n_skipped)'
+	display as text "through the settings file: `got'"
+	assert "`got'" == "8 11 ref.sqldta_test_part `fs'.sqldta_test_part2 | applied 0 1 2 7 2 1"
+	frame t224a {
+		assert `"`: data label'"' == "Fixture main table"
+	}
+	global SQLDTA_LABELFALLBACK "`fs'.sqldta_no_such_table2"
+	sqldta, `fdb' dataset(`fs'.sqldta_test_main) frame(t224b)
+	assert "`r(labelstatus)'" == "notfound" & "`r(links)'" == ""
+	global SQLDTA_LABELFALLBACK "`fs'.sqldta_test_otherlayout"
+	display as text "(a note that the label table lacks columns is expected here)"
+	sqldta, `fdb' dataset(`fs'.sqldta_test_main) frame(t224c)
+	assert "`r(labelstatus)'" == "failed" & "`r(links)'" == "" & r(k) == 7
+	sqldta, `fdb' dataset(`fs'.sqldta_test_main) frame(t224d) labels(none)
+	assert "`r(labelstatus)'" == "none" & "`r(links)'" == ""
+}
+t_result fallback_settings `=_rc'
+
+* 225. The dialog's description of the split table through the fallback is
+*      the same as through the fixture label table: the text, the linked
+*      tables and the text of a column with notes
+t_reset
+capture noisily {
+	global SQLDTA_LABELFALLBACK "`fs'.sqldta_test_oldlabels"
+	sqldta_dlg query describe, server("$TEST_SERVER") database("$TEST_FIXDATABASE") ///
+		dataset(`fs'.sqldta_test_main) `fix'
+	assert r(rc) == 0
+	local text `"`r(text)'"'
+	local links `r(links)'
+	sqldta_dlg query column, name(num)
+	local num `"`r(text)'"'
+	sqldta_dlg query describe, server("$TEST_SERVER") database("$TEST_FIXDATABASE") ///
+		dataset(`fs'.sqldta_test_main) `fbnone'
+	assert r(rc) == 0 & "`r(labelstatus)'" == "applied"
+	display as text `"  text: `r(text)'"'
+	assert `"`r(text)'"' == `"`text'"' & "`r(links)'" == "`links'"
+	sqldta_dlg query column, name(num)
+	display as text `"  num: `r(text)'"'
+	assert `"`r(text)'"' == `"`num'"'
+}
+t_result fallback_dialog `=_rc'
+
+* 226. After clear mata, sqldta either still works or asks for discard; after
 *      discard it works. This test clears the Mata functions of this file, so
 *      it must stay last.
 t_reset
 capture noisily {
 	clear mata
-	capture noisily sqldta if num == 1, `fmain' frame(t212a)
+	capture noisily sqldta if num == 1, `fmain' frame(t226a)
 	display as text "after clear mata: r(" _rc ")"
 	discard
-	sqldta if num == 1, `fmain' frame(t212b)
+	sqldta if num == 1, `fmain' frame(t226b)
 	assert r(N) == 1
 }
 t_result if_clear_mata `=_rc'

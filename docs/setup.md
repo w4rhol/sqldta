@@ -92,6 +92,7 @@ Each line holds the name of a setting, in any case, then a space or a tab, then 
 | `SQLDTA_CONNECTION` | a connection template; on several lines, templates tried in order (see [Connecting](#connecting)) | the ODBC data source named after the server |
 | `SQLDTA_DATASCHEMA` | the schema of a table named in `dataset()` without one | `dbo` |
 | `SQLDTA_LABELTABLE` | the label table, as `schema.table`, or `table`, which is then in `ref` | `ref.DataProperties` |
+| `SQLDTA_LABELFALLBACK` | for backward compatibility, a label table of the layout of `sqldta`'s predecessor, read in place of the label table when that is not found | none |
 | `SQLDTA_DATABASES` | databases that the dialog lists for every server, separated by spaces | the databases on the server that the login can open |
 | `SQLDTA_DEFAULTDB` | the database that the dialog selects first: words separated by spaces, each a database for every server, or `server=database` for one server | the first listed |
 | `SQLDTA_DLGREMEMBER` | anything other than `0` makes the dialog reopen at the server, database and schema chosen last in the session | `0` |
@@ -214,6 +215,8 @@ SELECT N'dbo' AS TableSchema,
        Text AS PropertyText
 FROM ref.MyLabels;
 ```
+
+[examples/data_properties_view.sql](../examples/data_properties_view.sql) builds such a view over a label table of the layout of `sqldta`'s predecessor.
 
 A label table that lacks any of the six columns is not read: `sqldta` displays a note that names them and loads the data without labels.
 

@@ -1,4 +1,4 @@
-*! version 1.1.0 23oct2026
+*! version 1.2.0 23oct2026
 * _sqldta_settings: the settings of sqldta, for sqldta, for its dialog helper
 * sqldta_dlg and for _sqldta_odbc
 *
@@ -19,12 +19,12 @@
 * given.
 *
 * Returns r(file), the file read, or empty if none is found; r(servers),
-* r(databases), r(defaultdb), r(dlgremember), r(dataschema), r(labeltable)
-* and r(dttext); r(nconnections) and r(connection1), r(connection2) and so on,
-* the connection templates: the global SQLDTA_CONNECTION alone if it is set,
-* otherwise the SQLDTA_CONNECTION lines of the file; r(ignored), the numbers
-* of the lines of the file passed over; and r(server), server() if given,
-* otherwise the first of r(servers).
+* r(databases), r(defaultdb), r(dlgremember), r(dataschema), r(labeltable),
+* r(labelfallback) and r(dttext); r(nconnections) and r(connection1),
+* r(connection2) and so on, the connection templates: the global
+* SQLDTA_CONNECTION alone if it is set, otherwise the SQLDTA_CONNECTION lines
+* of the file; r(ignored), the numbers of the lines of the file passed over;
+* and r(server), server() if given, otherwise the first of r(servers).
 *
 * connect chooses the connection to r(server) and returns it in
 * r(connection), a template, or dsn for the ODBC data source named after the
@@ -53,9 +53,10 @@ program define _sqldta_settings, rclass
 
 	* The values, the globals over the file, read in Mata so that $ and
 	* backquotes in them are kept. Sets the locals servers, databases,
-	* defaultdb, dlgremember, dataschema, labeltable and dttext, each with
-	* src_<name>, global, file or empty; nconn, conn1, conn2 and so on;
-	* connsrc; key, the file's templates joined; and ignored.
+	* defaultdb, dlgremember, dataschema, labeltable, labelfallback and
+	* dttext, each with src_<name>, global, file or empty; nconn, conn1,
+	* conn2 and so on; connsrc; key, the file's templates joined; and
+	* ignored.
 	mata: _sqldta_cfg_read(st_local("file"), "`quiet'" != "")
 
 	if `"`server'"' == "" gettoken server : servers
@@ -144,7 +145,7 @@ program define _sqldta_settings, rclass
 	}
 
 	return local file `"`file'"'
-	foreach n in servers databases defaultdb dlgremember dataschema labeltable dttext {
+	foreach n in servers databases defaultdb dlgremember dataschema labeltable labelfallback dttext {
 		return local `n' `"`macval(`n')'"'
 	}
 	return scalar nconnections = `nconn'
@@ -183,7 +184,7 @@ void _sqldta_cfg_read(string scalar fn, real scalar quiet)
 	string scalar line, name, value, word, g, ln, ignored
 	real scalar i, j, n
 
-	names = ("SERVERS", "DATABASES", "DEFAULTDB", "DLGREMEMBER", "DATASCHEMA", "LABELTABLE", "DTTEXT")
+	names = ("SERVERS", "DATABASES", "DEFAULTDB", "DLGREMEMBER", "DATASCHEMA", "LABELTABLE", "LABELFALLBACK", "DTTEXT")
 	fval = J(1, cols(names), "")
 	fhas = J(1, cols(names), 0)
 	conn = J(0, 1, "")
@@ -337,19 +338,19 @@ void _sqldta_cfg_show(string scalar fn, real scalar conn)
 	if (fn != "") printf("{txt}  settings file: {res}%s\n", _sqldta_cfg_esc(fn))
 	else printf("{txt}  settings file: none; no file sqldta_site.cfg was found along the ado-path\n")
 	if (st_local("ignored") != "") printf("{txt}  lines of the file passed over: %s\n", st_local("ignored"))
-	names = ("SERVERS", "DATABASES", "DEFAULTDB", "DLGREMEMBER", "DATASCHEMA", "LABELTABLE", "DTTEXT")
+	names = ("SERVERS", "DATABASES", "DEFAULTDB", "DLGREMEMBER", "DATASCHEMA", "LABELTABLE", "LABELFALLBACK", "DTTEXT")
 	for (i = 1; i <= cols(names); i++) {
 		ln = strlower(names[i])
 		src = st_local("src_" + ln)
 		v = st_local(ln)
-		printf("{txt}  %-19s {res}%s{txt}%s\n", "SQLDTA_" + names[i], _sqldta_cfg_esc(v),
+		printf("{txt}  %-20s {res}%s{txt}%s\n", "SQLDTA_" + names[i], _sqldta_cfg_esc(v),
 			(src == "" ? "(not set)" : (v == "" ? "(empty, from the " + src + ")" : "  (from the " + src + ")")))
 	}
 	n = strtoreal(st_local("nconn"))
 	src = st_local("connsrc")
-	if (n == 0) printf("{txt}  %-19s (not set)\n", "SQLDTA_CONNECTION")
+	if (n == 0) printf("{txt}  %-20s (not set)\n", "SQLDTA_CONNECTION")
 	for (i = 1; i <= n; i++) {
-		printf("{txt}  %-19s %g. {res}%s{txt}  (from the %s)\n", (i == 1 ? "SQLDTA_CONNECTION" : ""), i,
+		printf("{txt}  %-20s %g. {res}%s{txt}  (from the %s)\n", (i == 1 ? "SQLDTA_CONNECTION" : ""), i,
 			_sqldta_cfg_esc(_sqldta_cfg_mask(st_local("conn" + strofreal(i)))), src)
 	}
 	if (!conn) return

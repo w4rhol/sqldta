@@ -1,4 +1,4 @@
-*! version 1.1.0 23oct2026
+*! version 1.2.0 23oct2026
 program define sqldta, rclass
 	version 16
 
@@ -44,6 +44,7 @@ program define sqldta, rclass
 	local server `"`r(server)'"'
 	local defschema `"`r(dataschema)'"'
 	local deflabel `"`r(labeltable)'"'
+	local fallback `"`r(labelfallback)'"'
 	local dttextset `"`r(dttext)'"'
 	if `"`server'"' == "" {
 		display as error "server() is required because no server is set in SQLDTA_SERVERS, as a global"
@@ -61,10 +62,21 @@ program define sqldta, rclass
 
 	if `"`deflabel'"' == "" local deflabel ref.DataProperties
 	_sqldta_split `"`deflabel'"' ref "SQLDTA_LABELTABLE"
+	local deflschema `"`r(schema)'"'
 	if `"`labeltable'"' == "" local labeltable `"`deflabel'"'
-	_sqldta_split `"`labeltable'"' `"`r(schema)'"' "labeltable()"
+	_sqldta_split `"`labeltable'"' `"`deflschema'"' "labeltable()"
 	local labelschema `"`r(schema)'"'
 	local labeltable `"`r(table)'"'
+
+	* SQLDTA_LABELFALLBACK: a label table of the predecessor's layout, read in
+	* place of the label table when that is not found, for backward
+	* compatibility. A table named without a schema is in the schema of the
+	* default label table.
+	if `"`fallback'"' != "" {
+		_sqldta_split `"`fallback'"' `"`deflschema'"' "SQLDTA_LABELFALLBACK"
+		local fbschema `"`r(schema)'"'
+		local fbtable `"`r(table)'"'
+	}
 
 	* Date-times are sent as numbers of milliseconds, unless SQLDTA_DTTEXT,
 	* set to anything other than 0, asks for the earlier method: text
@@ -86,10 +98,21 @@ program define sqldta, rclass
 
 	* Link rows in the label table, if the label table exists and has the
 	* columns of its layout. A linked table named without a schema is in the
-	* schema of the main table.
+	* schema of the main table. When the label table is not found and
+	* SQLDTA_LABELFALLBACK is set, the label table it names is read instead;
+	* one query checks both.
 	_sqldta_meta `"`server'"' `"`database'"' `"`labelschema'"' `"`labeltable'"' ///
-		`"`dataset'"' `"`dataschema'"'
+		`"`dataset'"' `"`dataschema'"' `"`fbschema'"' `"`fbtable'"'
 	local lblfound = r(found)
+	local oldlayout = r(old)
+	local nfmsg label table `database'.`labelschema'.`labeltable'
+	if `oldlayout' {
+		local labelschema `"`fbschema'"'
+		local labeltable `"`fbtable'"'
+	}
+	else if !`lblfound' & `"`fallback'"' != "" {
+		local nfmsg label tables `database'.`labelschema'.`labeltable' and `database'.`fbschema'.`fbtable'
+	}
 	local lblmissing `r(missing)'
 	local nlinks = r(nlinks)
 	local lkeys `r(keys)'
@@ -98,7 +121,8 @@ program define sqldta, rclass
 	if "`lblmissing'" != "" {
 		display as text `"note: label table `database'.`labelschema'.`labeltable' lacks `lblmissing',"'
 		display as text "  so no labels are applied and no Link rows are followed; a label table needs the"
-		display as text "  columns TableSchema, TableName, ColumnName, PropertyType, PropertyCode and PropertyText"
+		if `oldlayout' display as text "  columns Dataset, VarName, LabelType, DataCode and LabelName"
+		else display as text "  columns TableSchema, TableName, ColumnName, PropertyType, PropertyCode and PropertyText"
 	}
 
 	* Columns of the main table and of each linked table
@@ -303,7 +327,7 @@ program define sqldta, rclass
 		else {
 			_sqldta_labels `target' `"`server'"' `"`database'"' `"`labelschema'"' ///
 				`"`labeltable'"' `"`dataschema'"' `"`dataset'"' "`lschemas'" "`ltables'" ///
-				"`types'" "`lall'"
+				"`types'" "`lall'" `oldlayout'
 			local status `r(status)'
 			if "`status'" == "applied" {
 				foreach s in vallabels varlabels formats varnotes dtanotes skipped {
@@ -324,7 +348,7 @@ program define sqldta, rclass
 	if `nlinks' > 1 local msg `msg' and `nlinks' linked tables
 	local msg `msg' into frame `target'
 	if "`status'" == "notfound" {
-		local msg `msg'; label table `database'.`labelschema'.`labeltable' not found or not readable, so no labels applied
+		local msg `msg'; `nfmsg' not found or not readable, so no labels applied
 	}
 	else if "`status'" == "failed" & "`lblmissing'" != "" {
 		local msg `msg'; label table `database'.`labelschema'.`labeltable' lacks columns of its layout, so no labels applied
@@ -334,6 +358,7 @@ program define sqldta, rclass
 	}
 	else if "`types'" != "" {
 		local msg `msg'; value-label sets `n_vallabels', variable labels `n_varlabels', display formats `n_formats', variable notes `n_varnotes', dataset notes `n_dtanotes', label rows skipped `n_skipped'
+		if `oldlayout' local msg `msg'; labels from `database'.`labelschema'.`labeltable'
 	}
 	display as text `"(`msg')"'
 
@@ -469,42 +494,68 @@ end
 * Checks for the label table and its columns, and reads its Link rows for the
 * table dataset in the schema defschema. Stops on a failed query, because a
 * missed link would load the data only in part. A linked table named without a
-* schema is in defschema too. Returns r(found), r(missing) (the columns of the
-* layout that the label table lacks, separated by commas; no Link rows are read
-* then), r(nlinks) and the lists r(keys), r(schemas) and r(tables).
+* schema is in defschema too. fbschema and fbtable, when given, name a label
+* table of the predecessor's layout, whose rows are filed by the table's name
+* alone, which is read when the label table is not found; the same query
+* checks both, so that the fallback costs no query of its own. Returns
+* r(found), r(old) (1 when the fallback is read), r(missing) (the columns of
+* the layout that the label table read lacks, separated by commas; no Link
+* rows are read then), r(nlinks) and the lists r(keys), r(schemas) and
+* r(tables).
 program define _sqldta_meta, rclass
 	version 16
-	args server database schema table dataset defschema
+	args server database schema table dataset defschema fbschema fbtable
 
-	_sqldta_qname `"`database'"' `"`schema'"' `"`table'"'
-	local qtable `"`r(qname)'"'
-	local object `schema'.`table'
-	local qlit : subinstr local qtable "'" "''", all
 	local dslit : subinstr local dataset "'" "''", all
 	local sclit : subinstr local defschema "'" "''", all
 	local qdb : subinstr local database "]" "]]", all
 
-	* Whether the label table exists, and whether it has each column of the
-	* layout, from sys.all_columns, which also covers views
-	local layout TableSchema TableName ColumnName PropertyType PropertyCode PropertyText
-	local sql SELECT CASE WHEN OBJECT_ID(N'`qlit'') IS NULL THEN 0 ELSE 1 END AS found
-	foreach c of local layout {
-		local sql `sql', (SELECT COUNT(*) FROM [`qdb'].sys.all_columns ///
-			WHERE object_id = OBJECT_ID(N'`qlit'') AND name = N'`c'') AS has`c'
+	* Whether each label table exists, and whether it has each column of its
+	* layout, from sys.all_columns, which also covers views. The DataType
+	* column of the predecessor's layout is not read.
+	local layout1 TableSchema TableName ColumnName PropertyType PropertyCode PropertyText
+	local layout2 Dataset VarName LabelType DataCode LabelName
+	_sqldta_qname `"`database'"' `"`schema'"' `"`table'"'
+	local qtable1 `"`r(qname)'"'
+	local object1 `schema'.`table'
+	local fb = `"`fbtable'"' != ""
+	if `fb' {
+		_sqldta_qname `"`database'"' `"`fbschema'"' `"`fbtable'"'
+		local qtable2 `"`r(qname)'"'
+		local object2 `fbschema'.`fbtable'
+	}
+	local sql SELECT
+	local sep
+	forvalues i = 1/`=1 + `fb'' {
+		local qlit : subinstr local qtable`i' "'" "''", all
+		local sql `sql'`sep' CASE WHEN OBJECT_ID(N'`qlit'') IS NULL THEN 0 ELSE 1 END AS found`i'
+		local sep ,
+		foreach c of local layout`i' {
+			local sql `sql', (SELECT COUNT(*) FROM [`qdb'].sys.all_columns ///
+				WHERE object_id = OBJECT_ID(N'`qlit'') AND name = N'`c'') AS has`i'`c'
+		}
 	}
 	tempname f
 	frame create `f'
-	_sqldta_odbc `f' `"`server'"' `"`database'"' `"`object'"' `"`sql'"'
+	_sqldta_odbc `f' `"`server'"' `"`database'"' `"`object1'"' `"`sql'"'
 	if r(rc) {
 		local rc = r(rc)
 		exit `rc'
 	}
-	frame `f': local found = found[1]
+	local i 1
+	frame `f': local found = found1[1]
+	if !`found' & `fb' {
+		frame `f': local found = found2[1]
+		if `found' local i 2
+	}
+	local old = `i' == 2
+	local qtable `"`qtable`i''"'
+	local object `object`i''
 	local missing
 	local sep
 	if `found' {
-		foreach c of local layout {
-			frame `f': local has = has`c'[1]
+		foreach c of local layout`i' {
+			frame `f': local has = has`i'`c'[1]
 			if `has' == 0 {
 				local missing `missing'`sep'`c'
 				local sep ", "
@@ -512,14 +563,25 @@ program define _sqldta_meta, rclass
 		}
 	}
 	return scalar found = `found'
+	return scalar old = `old'
 	return local missing `missing'
 	return scalar nlinks = 0
 	if `found' == 0 | "`missing'" != "" exit
 
-	local sql SELECT DISTINCT LTRIM(RTRIM(CAST(ColumnName AS nvarchar(128)))) AS ColumnName, ///
-		LTRIM(RTRIM(CAST(PropertyText AS nvarchar(300)))) AS PropertyText ///
-		FROM `qtable' WHERE TableSchema = N'`sclit'' AND TableName = N'`dslit'' ///
-		AND PropertyType = N'Link' ORDER BY PropertyText
+	* Rows of the predecessor's layout are selected with plain literals, as
+	* the predecessor did: its columns are varchar, and under a SQL collation
+	* an index on a varchar column cannot serve a comparison with N'...'
+	if `old' {
+		local sql SELECT DISTINCT LTRIM(RTRIM(CAST(VarName AS nvarchar(128)))) AS ColumnName, ///
+			LTRIM(RTRIM(CAST(LabelName AS nvarchar(300)))) AS PropertyText ///
+			FROM `qtable' WHERE Dataset = '`dslit'' AND LabelType = 'Link' ORDER BY PropertyText
+	}
+	else {
+		local sql SELECT DISTINCT LTRIM(RTRIM(CAST(ColumnName AS nvarchar(128)))) AS ColumnName, ///
+			LTRIM(RTRIM(CAST(PropertyText AS nvarchar(300)))) AS PropertyText ///
+			FROM `qtable' WHERE TableSchema = N'`sclit'' AND TableName = N'`dslit'' ///
+			AND PropertyType = N'Link' ORDER BY PropertyText
+	}
 	_sqldta_odbc `f' `"`server'"' `"`database'"' `"`object'"' `"`sql'"'
 	if r(rc) {
 		local rc = r(rc)
@@ -1102,12 +1164,13 @@ end
 
 * Fetches the label rows of the table dataset in the schema dschema and of its
 * linked tables, the tables ltables in the schemas lschemas, each filed under
-* its own schema and name, and applies them to the target frame. Returns
-* r(status) (applied or failed) and, when applied, the counts from
-* _sqldta_apply.
+* its own schema and name, and applies them to the target frame. old is 1 for
+* a label table of the predecessor's layout, whose rows are filed by the
+* table's name alone. Returns r(status) (applied or failed) and, when applied,
+* the counts from _sqldta_apply.
 program define _sqldta_labels, rclass
 	version 16
-	args target server database schema table dschema dataset lschemas ltables types allcols
+	args target server database schema table dschema dataset lschemas ltables types allcols old
 
 	_sqldta_qname `"`database'"' `"`schema'"' `"`table'"'
 	local qtable `"`r(qname)'"'
@@ -1128,26 +1191,54 @@ program define _sqldta_labels, rclass
 		local s : subinstr local s "'" "''", all
 		local t : subinstr local t "'" "''", all
 		if `i' > 0 local tables `tables' OR
-		local tables `tables' (TableSchema = N'`s'' AND TableName = N'`t'')
+		if `old' local tables `tables' Dataset = '`t''
+		else local tables `tables' (TableSchema = N'`s'' AND TableName = N'`t'')
 	}
 
 	* One query for all requested label types. Format and DataLabel, the
 	* names of VariableFormat and DatasetLabel in sqldta 1.0.0, are read as
-	* well, so that label tables made for it keep working.
+	* well, so that label tables made for it keep working. A label table of
+	* the predecessor's layout may hold its types as well as these, and they
+	* are read as these: Opt, Var, NoteVar, NoteDta and DtaLabel. Its rows are
+	* selected with plain literals, for the reason given in _sqldta_meta.
+	local alt_VariableFormat Format
+	local alt_DatasetLabel DataLabel
+	if `old' {
+		local alt_ValueLabel Opt
+		local alt_VariableLabel Var
+		local alt_VariableNote NoteVar
+		local alt_DatasetNote NoteDta
+		local alt_DatasetLabel DataLabel DtaLabel
+	}
 	local where
 	foreach t of local types {
-		if `"`where'"' != "" local where `where' OR
-		local where `where' PropertyType = N'`t''
-		if "`t'" == "VariableFormat" local where `where' OR PropertyType = N'Format'
-		if "`t'" == "DatasetLabel" local where `where' OR PropertyType = N'DataLabel'
+		foreach w in `t' `alt_`t'' {
+			if `"`where'"' != "" local where `where' OR
+			if `old' local where `where' LabelType = '`w''
+			else local where `where' PropertyType = N'`w''
+		}
 	}
-	local sql SELECT DISTINCT ///
-		LTRIM(RTRIM(CAST(ColumnName AS nvarchar(128)))) AS ColumnName, ///
-		LTRIM(RTRIM(CAST(PropertyType AS nvarchar(20)))) AS PropertyType, ///
-		LTRIM(RTRIM(CAST(PropertyCode AS nvarchar(50)))) AS PropertyCode, ///
-		CAST(PropertyText AS nvarchar(max)) AS PropertyText ///
-		FROM `qtable' ///
-		WHERE (`tables') AND DATALENGTH(PropertyText) > 0 AND (`where')
+	if `old' {
+		local sql SELECT DISTINCT ///
+			LTRIM(RTRIM(CAST(VarName AS nvarchar(128)))) AS ColumnName, ///
+			LTRIM(RTRIM(CAST(CASE LabelType WHEN N'Opt' THEN N'ValueLabel' ///
+				WHEN N'Var' THEN N'VariableLabel' WHEN N'NoteVar' THEN N'VariableNote' ///
+				WHEN N'NoteDta' THEN N'DatasetNote' WHEN N'DtaLabel' THEN N'DatasetLabel' ///
+				ELSE LabelType END AS nvarchar(20)))) AS PropertyType, ///
+			LTRIM(RTRIM(CAST(DataCode AS nvarchar(50)))) AS PropertyCode, ///
+			CAST(LabelName AS nvarchar(max)) AS PropertyText ///
+			FROM `qtable' ///
+			WHERE (`tables') AND DATALENGTH(LabelName) > 0 AND (`where')
+	}
+	else {
+		local sql SELECT DISTINCT ///
+			LTRIM(RTRIM(CAST(ColumnName AS nvarchar(128)))) AS ColumnName, ///
+			LTRIM(RTRIM(CAST(PropertyType AS nvarchar(20)))) AS PropertyType, ///
+			LTRIM(RTRIM(CAST(PropertyCode AS nvarchar(50)))) AS PropertyCode, ///
+			CAST(PropertyText AS nvarchar(max)) AS PropertyText ///
+			FROM `qtable' ///
+			WHERE (`tables') AND DATALENGTH(PropertyText) > 0 AND (`where')
+	}
 
 	tempname f
 	frame create `f'
