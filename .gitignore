@@ -21,3 +21,6 @@ desktop.ini
 .Ruserdata
 # memory snapshots
 *.mdmp
+*.stswp
+# local install file
+local_install.do
