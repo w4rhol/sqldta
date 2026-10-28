@@ -20,7 +20,7 @@ d Author: Warren Holroyd
 d Support: https://github.com/w4rhol/sqldta
 d Licence: MIT
 d
-d Distribution-Date: 20261023
+d Distribution-Date: 20261028
 f sqldta.ado
 f _sqldta_odbc.ado
 f _sqldta_settings.ado

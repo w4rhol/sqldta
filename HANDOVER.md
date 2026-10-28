@@ -11,7 +11,8 @@ The repository is public, so this file follows hard constraints 3 and 6 of CLAUD
 - Earlier logs, in the archive, covered Stata 18 SE, and ODBC Driver 13 and SQL Server Native Client 11.0 as the template (section 8).
 - Not tried: Stata 16 and 17, which the maintainer does not have; ODBC Driver 17; installing from GitHub with `net install`, and `adoupdate` (section 5, step 13). The dialog is tried by hand only.
 - sqldta 1.1.0 renames the PropertyTypes Format and DataLabel to VariableFormat and DatasetLabel, and reads the old names as well; fixtures version 2. Its log at cc123bb, whose code is that of 27884a5, showed 220 passed and 0 failed, through ODBC Driver 13 as the template; the shorter note of a fallback driver, written after it, is untested. Merged in pull request #2; the tag v1.1.0 is on 63e7f14 (section 9).
-- sqldta 1.2.0, on the branch `claude/quirky-brown-w7d5xx`: backward support for a predecessor's label table, `SQLDTA_LABELFALLBACK`, and `examples/data_properties_view.sql`; fixtures version 3. Its log at 7992273 showed 224 passed and 0 failed, through ODBC Driver 13 as the template, after the log at 600d792 had shown two faults of the tests (section 10).
+- sqldta 1.2.0: backward support for a predecessor's label table, `SQLDTA_LABELFALLBACK`, and `examples/data_properties_view.sql`; fixtures version 3. Its log at 7992273 showed 224 passed and 0 failed, through ODBC Driver 13 as the template, after the log at 600d792 had shown two faults of the tests. Merged in pull request #3; the tag v1.2.0 is on 7ea85f0 (section 10).
+- sqldta 1.3.0, on the branch `claude/quirky-brown-w7d5xx` restarted from `main` at 7ea85f0: DatasetDescription rows, `r(description)` and the dialog's description; fixtures version 4. Untested (section 11).
 
 ## 2. The archive
 
@@ -40,7 +41,7 @@ The maintainer runs Stata and SQL Server Management Studio (SSMS). Claude writes
 
 1. Claude commits and pushes to the session branch, says exactly what changed, and says what to run.
 2. The maintainer brings the clone up to date with RStudio's Git pane on a machine that has git: choose the session branch in the branch list, then click Pull.
-3. If `tests/create_fixtures.sql` changed, the maintainer opens it in SSMS and executes it. It works only in `_sqldtaTesting`, drops every object it creates first, and ends by listing the rows of each fixture table: 1,156 in the fixture label table and in `ref.DataProperties`, 1,000 in `sqldta_test_known`, 20,000 in `sqldta_test_adm` and, since fixtures version 3, 89 in `sqldta_test_oldlabels`.
+3. If `tests/create_fixtures.sql` changed, the maintainer opens it in SSMS and executes it. It works only in `_sqldtaTesting`, drops every object it creates first, and ends by listing the rows of each fixture table: 1,161 in the fixture label table and in `ref.DataProperties`, 1,000 in `sqldta_test_known`, 20,000 in `sqldta_test_adm` and 94 in `sqldta_test_oldlabels` (fixtures version 4).
 4. On the machine with Stata, which has no git, from the root of the clone, in a new Stata window: `do tests/test_sqldta.do`. The installed release is not touched (CLAUDE.md, Working method; docs/development.md). For interactive work, `do dev` switches a session to the clone's `src/`, and `do dev release` switches it back.
 5. The maintainer uploads `tests/test_sqldta.log`. Claude checks that its `branch:` and `commit:` lines, near the top, match the pushed head, then reads the result, fixes what failed, says exactly what changed, and waits for the next log.
 
@@ -242,7 +243,7 @@ The fixtures of the earlier design were dropped from the databases that held the
 
 ## 7. Tests
 
-`tests/test_sqldta.do` has 224 tests, each under `capture noisily`, and ends with `SQLDTA TESTS: <n> passed, <m> failed`. Every object it reads is made by `tests/create_fixtures.sql` in `_sqldtaTesting`. Test numbers match those of the archive's logs; 203 and 210 are not used.
+`tests/test_sqldta.do` has 225 tests, each under `capture noisily`, and ends with `SQLDTA TESTS: <n> passed, <m> failed`. Every object it reads is made by `tests/create_fixtures.sql` in `_sqldtaTesting`. Test numbers match those of the archive's logs; 203 and 210 are not used.
 
 | Tests | Cover |
 |---|---|
@@ -264,9 +265,10 @@ The fixtures of the earlier design were dropped from the databases that held the
 | 204 to 209, 211 | the settings file, precedence of option, global and file, `macro drop _all`, connection templates tried in order, the helper's choice of template, the example settings file, and the example where `net install` puts it |
 | 212 to 221 | the README's examples of `sqlwhere()` and the `if` qualifier on `sqldta_test_adm`, for January 2023, each compared with its Stata equivalent; a subquery and a sample of 10 |
 | 222 to 225 | `SQLDTA_LABELFALLBACK` with `sqldta_test_oldlabels`: the same labels as through the fixture label table, read only when the label table is not found, by name in any schema, from the settings file, a fallback not found or of another layout, and the dialog's description |
-| 226 | `clear mata`; it stays last, because it clears the test file's own Mata functions |
+| 226 | `r(description)` through the fixture label table and the fallback, not counted as skipped, empty with `labels(none)` or without a row of PropertyCode 1; the dialog's text then |
+| 227 | `clear mata`; it stays last, because it clears the test file's own Mata functions |
 
-Before test 204, the type report shows the server's version, compatibility level and collation and how each column of the data-type tables arrives, and the clear report shows `odbc load` with `clear` after a long query; neither is counted. After test 226, the data-type tables and the known table are loaded into frames and left there for inspection.
+Before test 204, the type report shows the server's version, compatibility level and collation and how each column of the data-type tables arrives, and the clear report shows `odbc load` with `clear` after a long query; neither is counted. After test 227, the data-type tables and the known table are loaded into frames and left there for inspection.
 
 ## 8. History of test logs
 
@@ -352,10 +354,34 @@ On 23 Oct 2026 the maintainer asked that sqldta read the label table of its pred
 | 1 | The change, pushed to `claude/quirky-brown-w7d5xx` | Claude | done |
 | 2 | Pull; run `tests/create_fixtures.sql` in SSMS (fixtures version 3); run `tests/test_sqldta.do`; upload the log | maintainer | done: the log at 600d792 (below) |
 | 3 | Fix what fails, until a log passes on the head | Claude; maintainer | done: the log at 7992273 passed |
-| 4 | The Distribution-Date of `sqldta.pkg`; pull request into `main`, merged with a merge commit | Claude; maintainer | the Distribution-Date stays 20261023, the date of the merge at the maintainer's instruction of 23 Oct 2026 and also the date of 1.1.0, so `adoupdate` does not offer 1.2.0 to a copy of 1.1.0, which the README's install line with `replace` added updates; pull request #3 opened 23 Oct 2026 |
-| 5 | Release v1.2.0, with its tag on the merge commit | maintainer | to do |
+| 4 | The Distribution-Date of `sqldta.pkg`; pull request into `main`, merged with a merge commit | Claude; maintainer | the Distribution-Date stays 20261023, the date of the merge at the maintainer's instruction of 23 Oct 2026 and also the date of 1.1.0, so `adoupdate` does not offer 1.2.0 to a copy of 1.1.0, which the README's install line with `replace` added updates; merged in pull request #3: 7ea85f0 |
+| 5 | Release v1.2.0, with its tag on the merge commit | maintainer | done: the tag v1.2.0 is on 7ea85f0 |
 
 ### The logs
 
 - 600d792, 23 Oct 2026, through ODBC Driver 13 as the template: the branch and commit lines matched the pushed head; fixtures version 3; 222 passed and 2 failed. Test 222 passed: the known table, the split table and the types table had the same labels, formats, notes, data labels, linked tables and counts through the fallback as through the fixture label table, and the summary line ended with the fallback's name. Test 225 passed, and `sqldta settings` showed the setting from the file. Tests 223 and 224 failed on a line of the form `frame f: assert` with `: variable label` or `: data label`, which Stata expands in the current frame before the prefix switches (section 4.1, item 9), so the rest of each test did not run; the next commit puts those lines in `frame f { }` blocks, as test 201 does, and changes nothing else. The fixtures are unchanged.
 - 7992273, 23 Oct 2026, through ODBC Driver 13 as the template: the branch and commit lines matched the pushed head; fixtures version 3; 224 passed and 0 failed. Tests 223 and 224 ran to the end: `sqldta_test_same` in `sqldta_test` and in `sqldta_alt` each got the fallback's rows filed under that name (value-label sets 1, variable labels 1, dataset notes 1, no linked table), with the type in lower case matched and the value label whose DataType is VARCHAR applied; without the setting the label table was not found; a global replaced the line of the settings file, and with a fallback that does not exist the summary line named both tables as not found; a fallback without the columns of the predecessor's layout gave the note that names them, `r(labelstatus)` failed and no linked tables. The code of 7992273 is that of 600d792 but for the two lines of the tests.
+
+## 11. Version 1.3.0: the dataset description
+
+### Decisions
+
+On 28 Oct 2026 the maintainer reported that the site's label table, now a table rather than a view, has a new PropertyType, DatasetDescription: the paragraphs of a description of a table, numbered by PropertyCode. Faults reported the same day came from the way the table had been loaded, which the maintainer corrected; nothing in sqldta caused them. Columns that the site's table has beyond the six of the layout are not read and are not recorded here. The maintainer decided:
+
+- The dialog's description shows the data label and then the DatasetDescription paragraph whose PropertyCode is 1; when there is none, the words "No dataset description available."; the dataset notes no longer appear there.
+- A load does not apply DatasetDescription rows to the data.
+
+To give the dialog the paragraph without a query of its own, sqldta's label query also fetches the DatasetDescription rows of the table loaded (not of its linked tables), takes them out before the other rows are applied, so that they are not counted, and returns the text of the one whose PropertyCode is the number 1 in `r(description)`. The cast of PropertyType in the label query is widened from 20 to 128 characters.
+
+### What changed
+
+`src/sqldta.ado` (`_sqldta_labels`, a Mata function `_sqldta_desc`, `r(description)`), `src/sqldta_dlg.ado` (the description's text, `r(description)` of `query describe`), the help file (the type, its application and `r(description)`), `docs/setup.md` (the layout), the Distribution-Date (20261028) and the README's version line, `tests/create_fixtures.sql` (five DatasetDescription rows, version 4) and `tests/test_sqldta.do` (tests 164, 165 and 225 changed, test 226 new, `clear mata` 227).
+
+### Steps
+
+| # | Step | Who | State |
+|---|---|---|---|
+| 1 | The change, pushed to `claude/quirky-brown-w7d5xx` | Claude | done |
+| 2 | Pull; run `tests/create_fixtures.sql` in SSMS (fixtures version 4); run `tests/test_sqldta.do`; upload the log | maintainer | to do |
+| 3 | Fix what fails, until a log passes on the head | Claude; maintainer | to do |
+| 4 | Pull request into `main`, merged with a merge commit; release v1.3.0 | Claude; maintainer | to do |

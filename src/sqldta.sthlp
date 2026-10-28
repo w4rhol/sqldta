@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.2.0 23oct2026}{...}
+{* *! version 1.3.0 28oct2026}{...}
 {vieweralsosee "[D] odbc" "help odbc"}{...}
 {vieweralsosee "[D] frames" "help frames"}{...}
 {vieweralsosee "[D] label" "help label"}{...}
@@ -593,10 +593,11 @@ rows; for Link rows, the key column{p_end}
 {p2col:{cmd:PropertyType}}{cmd:ValueLabel} (value label), {cmd:VariableLabel}
 (variable label), {cmd:VariableFormat} (display format), {cmd:VariableNote}
 (variable note), {cmd:DatasetNote} (dataset note), {cmd:DatasetLabel} (data
-label) or {cmd:Link} (linked table of a split table), in any case{p_end}
+label), {cmd:DatasetDescription} (a paragraph of a description of the table)
+or {cmd:Link} (linked table of a split table), in any case{p_end}
 {p2col:{cmd:PropertyCode}}for ValueLabel rows, the integer code; for
 VariableNote and DatasetNote rows, optionally, the order in which the notes are
-applied{p_end}
+applied; for DatasetDescription rows, the number of the paragraph{p_end}
 {p2col:{cmd:PropertyText}}the label or note text; for VariableFormat rows, the
 format, such as {cmd:%9.2fc}; for DatasetLabel rows, the data label; for Link rows, the
 linked table as {it:table} (in the schema of the main table) or
@@ -680,6 +681,9 @@ command, {cmd:sqldta} does not replace {cmd:TS} with a time stamp.{p_end}
 {p 8 11 2}o{space 2}{bf:DatasetLabel} ({cmd:datalabel}): PropertyText is the data label, in place of
 {it:database}{cmd:.}{it:schema}{cmd:.}{it:table}. The first 80 characters are
 used.{p_end}
+{p 8 11 2}o{space 2}{bf:DatasetDescription}: not applied to the data. The text of the row of the
+table loaded whose PropertyCode is 1 is returned in {cmd:r(description)}, and
+the dialog shows it.{p_end}
 
 {pstd}
 A row is skipped, and counted in the summary line and in {cmd:r(n_skipped)},
@@ -943,9 +947,9 @@ by the dialog only: {opt database()} is still required in a command.
 {pstd}
 A server, database or schema that is not listed can be typed; {bf:Refresh lists}
 then lists what depends on it. Choosing a table shows its description: the
-data label and dataset notes from its DatasetLabel and DatasetNote rows, the
 approximate number of rows (not shown for a view), the number of columns that
-can be loaded, its linked tables and any columns that would be left out. The
+can be loaded, its linked tables, its data label, the paragraph of its
+description whose PropertyCode is 1, and any columns that would be left out. The
 description is read from the label table given on the {bf:Advanced} tab, or
 the default label table; after changing it, click {bf:Refresh lists}. Names
 that contain a double quote, a backquote, {cmd:$}, a backslash or a dot are
@@ -1105,6 +1109,8 @@ table{p_end}
 {synopt:{cmd:r(labels)}}label types applied, from {cmd:values variables formats varnotes dtanotes datalabel}; empty for {cmd:labels(none)}{p_end}
 {synopt:{cmd:r(labelstatus)}}{cmd:none} ({cmd:labels(none)}), {cmd:applied},
 {cmd:notfound} or {cmd:failed}{p_end}
+{synopt:{cmd:r(description)}}the text of the DatasetDescription row of
+PropertyCode 1, or empty{p_end}
 {synopt:{cmd:r(converted)}}date-time columns, and date, bigint and wide numeric
 columns converted from strings{p_end}
 {synopt:{cmd:r(unicode)}}columns loaded as Unicode through {opt unicode()}{p_end}
