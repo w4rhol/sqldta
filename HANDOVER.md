@@ -385,7 +385,7 @@ To give the dialog the paragraph without a query of its own, sqldta's label quer
 | 1 | The change, pushed to `claude/quirky-brown-w7d5xx` | Claude | done |
 | 2 | Pull; run `tests/create_fixtures.sql` in SSMS (fixtures version 4); run `tests/test_sqldta.do`; upload the log | maintainer | done: the log at 517b842 (below) |
 | 3 | Fix what fails, until a log passes on the head | Claude; maintainer | done: nothing failed |
-| 4 | Pull request into `main`, merged with a merge commit; release v1.3.0 | Claude; maintainer | to do |
+| 4 | Pull request into `main`, merged with a merge commit; release v1.3.0 | Claude; maintainer | pull request #4 opened 28 Oct 2026; to be merged and released |
 
 ### The log
 
