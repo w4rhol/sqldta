@@ -12,7 +12,7 @@ The repository is public, so this file follows hard constraints 3 and 6 of CLAUD
 - Not tried: Stata 16 and 17, which the maintainer does not have; ODBC Driver 17; installing from GitHub with `net install`, and `adoupdate` (section 5, step 13). The dialog is tried by hand only.
 - sqldta 1.1.0 renames the PropertyTypes Format and DataLabel to VariableFormat and DatasetLabel, and reads the old names as well; fixtures version 2. Its log at cc123bb, whose code is that of 27884a5, showed 220 passed and 0 failed, through ODBC Driver 13 as the template; the shorter note of a fallback driver, written after it, is untested. Merged in pull request #2; the tag v1.1.0 is on 63e7f14 (section 9).
 - sqldta 1.2.0: backward support for a predecessor's label table, `SQLDTA_LABELFALLBACK`, and `examples/data_properties_view.sql`; fixtures version 3. Its log at 7992273 showed 224 passed and 0 failed, through ODBC Driver 13 as the template, after the log at 600d792 had shown two faults of the tests. Merged in pull request #3; the tag v1.2.0 is on 7ea85f0 (section 10).
-- sqldta 1.3.0, on the branch `claude/quirky-brown-w7d5xx` restarted from `main` at 7ea85f0: DatasetDescription rows, `r(description)` and the dialog's description; fixtures version 4. Untested (section 11).
+- sqldta 1.3.0, on the branch `claude/quirky-brown-w7d5xx` restarted from `main` at 7ea85f0: DatasetDescription rows, `r(description)` and the dialog's description; fixtures version 4. Its log at 517b842 showed 225 passed and 0 failed, through ODBC Driver 13 as the template (section 11).
 
 ## 2. The archive
 
@@ -282,6 +282,7 @@ Before test 204, the type report shows the server's version, compatibility level
 | 23 Oct 2026 | cc123bb (branch `claude/eloquent-cannon-xfrjit`, pull request #2; sqldta 1.1.0; the code of 27884a5, section 9), Stata 19 SE, template through ODBC Driver 13 | 220 passed, 0 failed | fixtures version 2; the renamed types and the old names Format and DataLabel (tests 47, 100, 111, 153, 154, 159, 164, 165, 201) (section 9) |
 | 23 Oct 2026 | 600d792 (branch `claude/quirky-brown-w7d5xx`; sqldta 1.2.0), Stata 19 SE, template through ODBC Driver 13 | 222 passed, 2 failed | fixtures version 3; tests 222 and 225 passed; 223 and 224 failed in the tests themselves (section 10) |
 | 23 Oct 2026 | 7992273 (branch `claude/quirky-brown-w7d5xx`; sqldta 1.2.0), Stata 19 SE, template through ODBC Driver 13 | 224 passed, 0 failed | `SQLDTA_LABELFALLBACK`, tests 222 to 225 (section 10) |
+| 28 Oct 2026 | 517b842 (branch `claude/quirky-brown-w7d5xx`; sqldta 1.3.0), Stata 19 SE, template through ODBC Driver 13 | 225 passed, 0 failed | fixtures version 4; `r(description)` and the dialog's description (tests 164, 165, 225 and 226) (section 11) |
 
 ## 9. Version 1.1.0: VariableFormat and DatasetLabel
 
@@ -382,6 +383,10 @@ To give the dialog the paragraph without a query of its own, sqldta's label quer
 | # | Step | Who | State |
 |---|---|---|---|
 | 1 | The change, pushed to `claude/quirky-brown-w7d5xx` | Claude | done |
-| 2 | Pull; run `tests/create_fixtures.sql` in SSMS (fixtures version 4); run `tests/test_sqldta.do`; upload the log | maintainer | to do |
-| 3 | Fix what fails, until a log passes on the head | Claude; maintainer | to do |
+| 2 | Pull; run `tests/create_fixtures.sql` in SSMS (fixtures version 4); run `tests/test_sqldta.do`; upload the log | maintainer | done: the log at 517b842 (below) |
+| 3 | Fix what fails, until a log passes on the head | Claude; maintainer | done: nothing failed |
 | 4 | Pull request into `main`, merged with a merge commit; release v1.3.0 | Claude; maintainer | to do |
+
+### The log
+
+- 517b842, 28 Oct 2026, through ODBC Driver 13 as the template: the branch and commit lines matched the pushed head; fixtures version 4; 225 passed and 0 failed. The dialog's text for `sqldta_test_main` gave the data label, then paragraph 1 of the description with its double quotes, backquote and dollar sign as stored, then the columns left out, and no dataset notes; through the fallback it was the same; for the types table, which has no paragraph 1, it ended "No dataset description available."; `r(description)` was the text of paragraph 1 through the label table and through the fallback, empty with `labels(none)`, and the counts of applied and skipped rows were unchanged.
