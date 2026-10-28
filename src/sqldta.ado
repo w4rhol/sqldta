@@ -1,4 +1,4 @@
-*! version 1.2.0 23oct2026
+*! version 1.3.0 28oct2026
 program define sqldta, rclass
 	version 16
 
@@ -316,6 +316,7 @@ program define sqldta, rclass
 
 	* Labels
 	local status none
+	local description
 	foreach s in vallabels varlabels formats varnotes dtanotes skipped {
 		local n_`s' 0
 	}
@@ -329,6 +330,7 @@ program define sqldta, rclass
 				`"`labeltable'"' `"`dataschema'"' `"`dataset'"' "`lschemas'" "`ltables'" ///
 				"`types'" "`lall'" `oldlayout'
 			local status `r(status)'
+			mata: st_local("description", st_global("r(description)"))
 			if "`status'" == "applied" {
 				foreach s in vallabels varlabels formats varnotes dtanotes skipped {
 					local n_`s' = r(n_`s')
@@ -363,6 +365,7 @@ program define sqldta, rclass
 	display as text `"(`msg')"'
 
 	return local settings `"`settings'"'
+	return local description `"`macval(description)'"'
 	return local datetimes = cond(`dttext', "text", "number")
 	return local unicode `unicols'
 	return local labels `labels'
@@ -1166,8 +1169,8 @@ end
 * linked tables, the tables ltables in the schemas lschemas, each filed under
 * its own schema and name, and applies them to the target frame. old is 1 for
 * a label table of the predecessor's layout, whose rows are filed by the
-* table's name alone. Returns r(status) (applied or failed) and, when applied,
-* the counts from _sqldta_apply.
+* table's name alone. Returns r(status) (applied or failed), r(description)
+* and, when applied, the counts from _sqldta_apply.
 program define _sqldta_labels, rclass
 	version 16
 	args target server database schema table dschema dataset lschemas ltables types allcols old
@@ -1218,26 +1221,36 @@ program define _sqldta_labels, rclass
 			else local where `where' PropertyType = N'`w''
 		}
 	}
+
+	* The DatasetDescription rows of the table loaded, but not of its linked
+	* tables, come in the same query. They are not applied to the data: the
+	* text of the one whose PropertyCode is 1 is returned in r(description),
+	* which the dialog shows.
+	local s : subinstr local dschema "'" "''", all
+	local t : subinstr local dataset "'" "''", all
+	if `old' local desc Dataset = '`t'' AND LabelType = 'DatasetDescription'
+	else local desc TableSchema = N'`s'' AND TableName = N'`t'' AND PropertyType = N'DatasetDescription'
+
 	if `old' {
 		local sql SELECT DISTINCT ///
 			LTRIM(RTRIM(CAST(VarName AS nvarchar(128)))) AS ColumnName, ///
 			LTRIM(RTRIM(CAST(CASE LabelType WHEN N'Opt' THEN N'ValueLabel' ///
 				WHEN N'Var' THEN N'VariableLabel' WHEN N'NoteVar' THEN N'VariableNote' ///
 				WHEN N'NoteDta' THEN N'DatasetNote' WHEN N'DtaLabel' THEN N'DatasetLabel' ///
-				ELSE LabelType END AS nvarchar(20)))) AS PropertyType, ///
+				ELSE LabelType END AS nvarchar(128)))) AS PropertyType, ///
 			LTRIM(RTRIM(CAST(DataCode AS nvarchar(50)))) AS PropertyCode, ///
 			CAST(LabelName AS nvarchar(max)) AS PropertyText ///
 			FROM `qtable' ///
-			WHERE (`tables') AND DATALENGTH(LabelName) > 0 AND (`where')
+			WHERE DATALENGTH(LabelName) > 0 AND (((`tables') AND (`where')) OR (`desc'))
 	}
 	else {
 		local sql SELECT DISTINCT ///
 			LTRIM(RTRIM(CAST(ColumnName AS nvarchar(128)))) AS ColumnName, ///
-			LTRIM(RTRIM(CAST(PropertyType AS nvarchar(20)))) AS PropertyType, ///
+			LTRIM(RTRIM(CAST(PropertyType AS nvarchar(128)))) AS PropertyType, ///
 			LTRIM(RTRIM(CAST(PropertyCode AS nvarchar(50)))) AS PropertyCode, ///
 			CAST(PropertyText AS nvarchar(max)) AS PropertyText ///
 			FROM `qtable' ///
-			WHERE (`tables') AND DATALENGTH(PropertyText) > 0 AND (`where')
+			WHERE DATALENGTH(PropertyText) > 0 AND (((`tables') AND (`where')) OR (`desc'))
 	}
 
 	tempname f
@@ -1249,7 +1262,20 @@ program define _sqldta_labels, rclass
 		exit
 	}
 
+	* The DatasetDescription rows are taken out before the others are applied
+	local description
 	frame `f': local n = _N
+	if `n' > 0 {
+		frame `f' {
+			tempvar isdesc
+			quietly generate byte `isdesc' = ustrlower(PropertyType) == "datasetdescription"
+			mata: _sqldta_desc("`isdesc'")
+			quietly drop if `isdesc'
+			local n = _N
+		}
+	}
+	return local description `"`macval(description)'"'
+
 	if `n' > 0 {
 		* Notes that have a PropertyCode come first, in PropertyCode order:
 		* numeric if every code of that variable's notes is a number, otherwise
@@ -1458,6 +1484,27 @@ struct _sqldta_val {
 // Does nothing; sqldta calls it to check that these functions are in memory
 void _sqldta_present()
 {
+}
+
+// Sets the local description to the text of the first DatasetDescription row
+// of the current frame, marked by the variable isdesc, whose PropertyCode is
+// the number 1, or to "" if there is none
+void _sqldta_desc(string scalar isdesc)
+{
+	real colvector d, c
+	string colvector x
+	real scalar i
+
+	st_local("description", "")
+	d = st_data(., isdesc)
+	c = strtoreal(st_sdata(., "PropertyCode"))
+	x = st_sdata(., "PropertyText")
+	for (i = 1; i <= rows(d); i++) {
+		if (d[i] == 1 & c[i] == 1) {
+			st_local("description", x[i])
+			return
+		}
+	}
 }
 
 // Prepares the label rows of the current frame, in their order, for

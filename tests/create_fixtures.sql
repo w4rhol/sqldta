@@ -123,7 +123,7 @@ END');
 -- The seed of the generated tables, and the version of the fixtures, which
 -- tests/test_sqldta.do expects
 DECLARE @seed bigint = 20261021;
-DECLARE @version int = 3;
+DECLARE @version int = 4;
 
 -- The layout of a label table (CLAUDE.md, Metadata contract): the rows of a
 -- table are those whose TableSchema and TableName are its schema and name.
@@ -293,6 +293,18 @@ INSERT INTO sqldta_test.sqldta_test_labels (TableSchema, TableName, ColumnName, 
 (N'sqldta_test', N'sqldta_test_main', N'grp',    N'VariableNote',  NULL, N'a',  N'First note on grp'),
 (N'sqldta_test', N'sqldta_test_main', NULL,      N'DatasetNote',  NULL, N'2',  N'Second dataset note'),
 (N'sqldta_test', N'sqldta_test_main', NULL,      N'DatasetNote',  NULL, N'1',  N'First dataset note');
+
+-- DatasetDescription rows, which sqldta does not apply to the data and does
+-- not count: it returns the text of the one of PropertyCode 1 of the table
+-- loaded in r(description), which the dialog shows (tests 164, 165 and 226).
+-- The row of the linked table ref.sqldta_test_part is not taken for
+-- sqldta_test_main, and sqldta_test_types has no row of PropertyCode 1.
+INSERT INTO sqldta_test.sqldta_test_labels (TableSchema, TableName, ColumnName, PropertyType, DataType, PropertyCode, PropertyText) VALUES
+(N'sqldta_test', N'sqldta_test_main',  NULL, N'DatasetDescription', NULL, N'2',  N'Second paragraph of the description'),
+(N'sqldta_test', N'sqldta_test_main',  NULL, N'DatasetDescription', NULL, N'1',  N'First paragraph of the description, with "double quotes", a `backquote'' and $HOME'),
+(N'sqldta_test', N'sqldta_test_main',  NULL, N'DatasetDescription', NULL, N'10', N'Tenth paragraph of the description'),
+(N'ref',         N'sqldta_test_part',  NULL, N'DatasetDescription', NULL, N'1',  N'Description of a linked table, which is not taken'),
+(N'sqldta_test', N'sqldta_test_types', NULL, N'DatasetDescription', NULL, N'2',  N'A second paragraph, with no first');
 
 -- Fixture tables of SQL Server data types. sqldta_test_types has one column
 -- of each type that tables for analysis commonly have; sqldta_test_rare has
@@ -845,7 +857,7 @@ INSERT INTO sqldta_test.sqldta_test_otherlayout (TableName, ItemName, ItemText) 
 -- label whose DataType is not INT: loaded through it, each of the two tables
 -- gets value-label sets 1, variable labels 1, dataset notes 1, label rows
 -- skipped 0, the data label 'Same name, from the earlier layout', and no
--- linked table. 89 rows.
+-- linked table. 94 rows.
 CREATE TABLE sqldta_test.sqldta_test_oldlabels (
     Dataset   varchar(128) NOT NULL,
     VarName   varchar(128) NULL,
@@ -899,9 +911,9 @@ CREATE TABLE sqldta_test.sqldta_test_version (FixtureVersion int NOT NULL, Gener
 INSERT INTO sqldta_test.sqldta_test_version (FixtureVersion, GeneratorSeed) VALUES (@version, @seed);
 
 -- The number of rows of each fixture table. Expected: sqldta_test_labels
--- 1,156, sqldta_test_known 1,000, sqldta_test_adm 20,000, sqldta_test_main 8,
+-- 1,161, sqldta_test_known 1,000, sqldta_test_adm 20,000, sqldta_test_main 8,
 -- sqldta_test_types 6, sqldta_test_dt 12, sqldta_test_wide 2,
--- ref.DataProperties 1,156, sqldta_test_oldlabels 89.
+-- ref.DataProperties 1,161, sqldta_test_oldlabels 94.
 SELECT N'sqldta_test_labels' AS fixture, COUNT(*) AS n_rows FROM sqldta_test.sqldta_test_labels
 UNION ALL SELECT N'sqldta_test_known', COUNT(*) FROM sqldta_test.sqldta_test_known
 UNION ALL SELECT N'sqldta_test_adm', COUNT(*) FROM sqldta_test.sqldta_test_adm

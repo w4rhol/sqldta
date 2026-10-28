@@ -106,7 +106,7 @@ global TEST_LABELTABLE  "DataProperties"
 global TEST_FIXTABLE    "sqldta_test_labels"
 * The version of the fixtures that this file expects, which
 * tests/create_fixtures.sql writes in sqldta_test_version
-global TEST_FIXVERSION  3
+global TEST_FIXVERSION  4
 
 display as text "test database: $TEST_FIXDATABASE"
 * The driver of each log: the template names it, and the DSN's driver is the
@@ -2189,8 +2189,10 @@ capture noisily {
 t_result dlg_tables `=_rc'
 
 * 164. The description of a split table: the columns a load gives, the links,
-*      the data label and dataset notes in order, the number of rows, and the
-*      text the dialog shows; no frame is left behind
+*      the data label, the dataset notes in order, the DatasetDescription
+*      paragraph of PropertyCode 1, the number of rows, and the text the
+*      dialog shows, with the data label and that paragraph but not the
+*      notes; no frame is left behind
 t_reset
 capture noisily {
 	quietly frames dir
@@ -2208,8 +2210,12 @@ capture noisily {
 	assert `"`r(note1)'"' == "First dataset note"
 	assert `"`r(note2)'"' == "Second dataset note"
 	assert r(rows) == 8
-	display as text `"  text: `r(text)'"'
-	assert `"`r(text)'"' == "About 8 rows; 11 columns can be loaded. Linked tables: ref.sqldta_test_part, `fs'.sqldta_test_part2. Fixture main table. First dataset note. Second dataset note. Columns left out: bad name, ref.sqldta_test_part.shared."
+	mata: t_D = "First paragraph of the description, with " + char(34) + "double quotes" + char(34) + ", a " + char(96) + "backquote" + char(39) + " and " + char(36) + "HOME"
+	mata: st_numscalar("t_ok", st_global("r(description)") == t_D)
+	assert scalar(t_ok) == 1
+	mata: printf("{txt}  text: %s\n", st_global("r(text)"))
+	mata: st_numscalar("t_ok", st_global("r(text)") == "About 8 rows; 11 columns can be loaded. Linked tables: ref.sqldta_test_part, `fs'.sqldta_test_part2. Fixture main table. " + t_D + ". Columns left out: bad name, ref.sqldta_test_part.shared.")
+	assert scalar(t_ok) == 1
 	quietly frames dir
 	local after `r(frames)'
 	assert `: list after === before'
@@ -2217,8 +2223,10 @@ capture noisily {
 t_result dlg_describe `=_rc'
 
 * 165. The description of a view: no number of rows, and the text of its
-*      DatasetLabel and DatasetNote rows exactly, with double quotes, a backquote and a
-*      dollar sign, alone and in the text the dialog shows
+*      DatasetLabel and DatasetNote rows exactly, with double quotes, a
+*      backquote and a dollar sign; the text the dialog shows has the data
+*      label, and says that no dataset description is available, since the
+*      view has no DatasetDescription row
 t_reset
 capture noisily {
 	sqldta_dlg query describe, server("$TEST_SERVER") database("$TEST_FIXDATABASE") ///
@@ -2232,7 +2240,7 @@ capture noisily {
 	mata: st_numscalar("t_ok", st_global("r(note1)") == "First note on the view, with " + char(34) + "double quotes" + char(34) + ", a " + char(96) + "backquote" + char(39) + " and " + char(36) + "HOME")
 	assert scalar(t_ok) == 1
 	assert `"`r(note2)'"' == "Second note on the view"
-	mata: st_numscalar("t_ok", st_global("r(text)") == "A view, so the number of rows is not known; 3 columns can be loaded. View of the " + char(34) + "main" + char(34) + " fixture table. First note on the view, with " + char(34) + "double quotes" + char(34) + ", a " + char(96) + "backquote" + char(39) + " and " + char(36) + "HOME. Second note on the view.")
+	mata: st_numscalar("t_ok", st_global("r(text)") == "A view, so the number of rows is not known; 3 columns can be loaded. View of the " + char(34) + "main" + char(34) + " fixture table. No dataset description available.")
 	assert scalar(t_ok) == 1
 }
 t_result dlg_describe_view `=_rc'
@@ -3668,31 +3676,67 @@ capture noisily {
 	sqldta_dlg query describe, server("$TEST_SERVER") database("$TEST_FIXDATABASE") ///
 		dataset(`fs'.sqldta_test_main) `fix'
 	assert r(rc) == 0
-	local text `"`r(text)'"'
+	mata: t_T = st_global("r(text)")
 	local links `r(links)'
 	sqldta_dlg query column, name(num)
-	local num `"`r(text)'"'
+	mata: t_N = st_global("r(text)")
 	sqldta_dlg query describe, server("$TEST_SERVER") database("$TEST_FIXDATABASE") ///
 		dataset(`fs'.sqldta_test_main) `fbnone'
 	assert r(rc) == 0 & "`r(labelstatus)'" == "applied"
-	display as text `"  text: `r(text)'"'
-	assert `"`r(text)'"' == `"`text'"' & "`r(links)'" == "`links'"
+	mata: printf("{txt}  text: %s\n", st_global("r(text)"))
+	mata: st_numscalar("t_ok", st_global("r(text)") == t_T)
+	assert scalar(t_ok) == 1 & "`r(links)'" == "`links'"
 	sqldta_dlg query column, name(num)
-	display as text `"  num: `r(text)'"'
-	assert `"`r(text)'"' == `"`num'"'
+	mata: printf("{txt}  num: %s\n", st_global("r(text)"))
+	mata: st_numscalar("t_ok", st_global("r(text)") == t_N)
+	assert scalar(t_ok) == 1
 }
 t_result fallback_dialog `=_rc'
 
-* 226. After clear mata, sqldta either still works or asks for discard; after
+* 226. r(description), the text of the DatasetDescription row of PropertyCode
+*      1 of the table loaded, exactly, and not that of its linked table,
+*      through the fixture label table and through the fallback; the rows are
+*      not applied and not counted as skipped; empty with labels(none), and
+*      for a table that has no such row of PropertyCode 1, whose description
+*      in the dialog says that none is available
+t_reset
+capture noisily {
+	mata: t_D = "First paragraph of the description, with " + char(34) + "double quotes" + char(34) + ", a " + char(96) + "backquote" + char(39) + " and " + char(36) + "HOME"
+	sqldta, `fmain' frame(t226a)
+	mata: st_numscalar("t_ok", st_global("r(description)") == t_D)
+	assert scalar(t_ok) == 1
+	assert r(n_dtanotes) == 2 & r(n_skipped) == 1
+	frame t226a {
+		assert `"`_dta[note0]'"' == "2"
+	}
+	global SQLDTA_LABELFALLBACK "`fs'.sqldta_test_oldlabels"
+	sqldta, `fdb' dataset(`fs'.sqldta_test_main) `fbnone' frame(t226b)
+	mata: st_numscalar("t_ok", st_global("r(description)") == t_D)
+	assert scalar(t_ok) == 1 & r(n_dtanotes) == 2 & r(n_skipped) == 1
+	global SQLDTA_LABELFALLBACK
+	sqldta, `fmain' frame(t226c) labels(none)
+	assert `"`r(description)'"' == ""
+	sqldta, `fsrc' dataset(`fs'.sqldta_test_types) frame(t226d)
+	assert `"`r(description)'"' == "" & r(n_skipped) == 0
+	sqldta_dlg query describe, server("$TEST_SERVER") database("$TEST_FIXDATABASE") ///
+		dataset(`fs'.sqldta_test_types) `fix'
+	display as text `"  text: `r(text)'"'
+	assert r(rc) == 0 & `"`r(description)'"' == ""
+	local tail Fixture table of SQL Server data types. No dataset description available.
+	assert substr(`"`r(text)'"', -strlen("`tail'"), .) == "`tail'"
+}
+t_result description `=_rc'
+
+* 227. After clear mata, sqldta either still works or asks for discard; after
 *      discard it works. This test clears the Mata functions of this file, so
 *      it must stay last.
 t_reset
 capture noisily {
 	clear mata
-	capture noisily sqldta if num == 1, `fmain' frame(t226a)
+	capture noisily sqldta if num == 1, `fmain' frame(t227a)
 	display as text "after clear mata: r(" _rc ")"
 	discard
-	sqldta if num == 1, `fmain' frame(t226b)
+	sqldta if num == 1, `fmain' frame(t227b)
 	assert r(N) == 1
 }
 t_result if_clear_mata `=_rc'

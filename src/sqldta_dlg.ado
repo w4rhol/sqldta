@@ -1,4 +1,4 @@
-*! version 1.1.0 23oct2026
+*! version 1.3.0 28oct2026
 * sqldta_dlg: helper for the sqldta dialog, sqldta.dlg
 *
 *   sqldta_dlg query databases, server(name)
@@ -164,15 +164,17 @@ end
 
 
 * Describes a table for the dialog. The columns, links, data label, dataset
-* notes and the labels of each column come from sqldta itself, run with the
-* condition if 0, so that no rows are read, and with labels(all), so that
-* they are exactly what a load would give; unicode(*) makes sqldta list in
-* r(unicode) the char, varchar and text columns, which unicode() affects. The
-* number of rows comes from sys.partitions and is missing for a view. Returns
+* description, dataset notes and the labels of each column come from sqldta
+* itself, run with the condition if 0, so that no rows are read, and with
+* labels(all), so that they are exactly what a load would give; unicode(*)
+* makes sqldta list in r(unicode) the char, varchar and text columns, which
+* unicode() affects. The number of rows comes from sys.partitions and is
+* missing for a view. Returns
 * r(rc), r(columns) (the variables a load would give, in order), r(textcols)
 * (the char, varchar and text columns), r(links), r(dropped),
 * r(labelstatus), r(datalabel) (empty unless a DatasetLabel row gives one),
-* r(n_notes), r(note1), r(note2) and so on, r(rows), and r(text), the
+* r(description) (the DatasetDescription paragraph of PropertyCode 1, or
+* empty), r(n_notes), r(note1), r(note2) and so on, r(rows), and r(text), the
 * description that the dialog shows, made from the others. The text of each
 * column, which query column returns, is kept until the next description,
 * and emptied if this one fails.
@@ -198,6 +200,7 @@ program define _sqldta_dlg_describe, rclass
 	local dropped `"`r(dropped)'"'
 	local labelstatus `r(labelstatus)'
 	local textcols `r(unicode)'
+	mata: st_local("description", st_global("r(description)"))
 
 	local columns
 	local datalabel
@@ -246,6 +249,7 @@ program define _sqldta_dlg_describe, rclass
 	return local columns `columns'
 	return local textcols `textcols'
 	return local datalabel `"`macval(datalabel)'"'
+	return local description `"`macval(description)'"'
 	return scalar n_notes = `nn'
 	forvalues i = 1/`nn' {
 		return local note`i' `"`macval(note`i')'"'
@@ -766,25 +770,25 @@ string scalar _sqldta_dlg_names(string colvector s)
 // _sqldta_dlg_describe. The facts come first, because the dialog's box shows
 // only the start of a long description: the number of rows and of columns,
 // the linked tables, whether the label table was found, then the data label
-// and the dataset notes, and last the columns left out. Each part ends with a
-// full stop.
+// and the DatasetDescription paragraph of PropertyCode 1, and last the
+// columns left out. Dataset notes are not shown (the maintainer's choice of
+// 28 Oct 2026). Each part ends with a full stop.
 string scalar _sqldta_dlg_text()
 {
 	string scalar t, status
-	real scalar i, n, rows, k
+	real scalar rows, k
 
 	rows = strtoreal(st_local("rows"))
 	k = cols(tokens(st_local("columns")))
 	t = _sqldta_dlg_sentence("", (rows < . ? "About " + strtrim(strofreal(rows, "%20.0fc")) + (rows == 1 ? " row" : " rows") : "A view, so the number of rows is not known") + "; " + strofreal(k) + (k == 1 ? " column" : " columns") + " can be loaded")
 	if (st_local("links") != "") t = _sqldta_dlg_sentence(t, "Linked tables: " + subinstr(st_local("links"), " ", ", "))
-	n = strtoreal(st_local("nn"))
 	status = st_local("labelstatus")
 	if (status == "notfound") t = _sqldta_dlg_sentence(t, "The label table was not found, so there is no description")
 	else if (status == "failed") t = _sqldta_dlg_sentence(t, "The label table could not be read, so there is no description")
-	else if (st_local("datalabel") == "" & n == 0) t = _sqldta_dlg_sentence(t, "The label table has no DatasetLabel or DatasetNote row for this table")
-	t = _sqldta_dlg_sentence(t, st_local("datalabel"))
-	for (i = 1; i <= n; i++) {
-		t = _sqldta_dlg_sentence(t, st_local("note" + strofreal(i)))
+	else {
+		t = _sqldta_dlg_sentence(t, st_local("datalabel"))
+		if (st_local("description") != "") t = _sqldta_dlg_sentence(t, st_local("description"))
+		else t = _sqldta_dlg_sentence(t, "No dataset description available")
 	}
 	if (st_local("dropped") != "") t = _sqldta_dlg_sentence(t, "Columns left out: " + st_local("dropped"))
 	return(t)
