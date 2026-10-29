@@ -1,4 +1,4 @@
-*! version 1.3.0 28oct2026
+*! version 1.3.1 29oct2026
 * sqldta_dlg: helper for the sqldta dialog, sqldta.dlg
 *
 *   sqldta_dlg query databases, server(name)
@@ -355,7 +355,7 @@ program define _sqldta_dlg_onstart
 	local first : word 1 of `servers'
 	.sqldta_dlg.main.cb_server.setdefault `"`first'"'
 	if `"`labeltable'"' != "" {
-		.sqldta_dlg.advanced.ed_labeltable.setdefault `"`labeltable'"'
+		.sqldta_dlg.main.ed_labeltable.setdefault `"`labeltable'"'
 	}
 	_sqldta_dlg_value main.cb_server
 	local cur `"`r(value)'"'
@@ -548,7 +548,7 @@ program define _sqldta_dlg_ondescribe
 	local schema `"`r(value)'"'
 	_sqldta_dlg_value main.lb_table
 	local table `"`r(value)'"'
-	_sqldta_dlg_value advanced.ed_labeltable
+	_sqldta_dlg_value main.ed_labeltable
 	local labeltable `"`r(value)'"'
 	mata: st_local("none", _sqldta_dlg_none())
 	if `"`table'"' == `"`none'"' local table
@@ -565,7 +565,8 @@ program define _sqldta_dlg_ondescribe
 	_sqldta_dlg_describe, server(`"`server'"') database(`"`database'"') dataset(`"`dataset'"') `lt'
 	local rc = r(rc)
 	local columns `r(columns)'
-	mata: st_local("text", _sqldta_dlg_clip(st_global("r(text)"), 480))
+	* Cut to about what the description box shows, 230 by 360 pixels
+	mata: st_local("text", _sqldta_dlg_clip(st_global("r(text)"), 720))
 	* sqldta runs under capture in the description, so its own message is not
 	* shown; loading the table shows it
 	if `rc' {
@@ -652,7 +653,8 @@ program define _sqldta_dlg_showcolumn
 	else {
 		_sqldta_dlg_column, name(`"`name'"')
 		if r(rc) == 0 {
-			mata: st_local("text", _sqldta_dlg_clip(st_global("r(text)"), 400))
+			* Cut to about what the box Column chosen shows, 400 by 225 pixels
+			mata: st_local("text", _sqldta_dlg_clip(st_global("r(text)"), 800))
 		}
 		else local text The labels of `name' are not known; choose the table again on the Import tab.
 	}
