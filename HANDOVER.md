@@ -12,7 +12,8 @@ The repository is public, so this file follows hard constraints 3 and 6 of CLAUD
 - Not tried: Stata 16 and 17, which the maintainer does not have; ODBC Driver 17; installing from GitHub with `net install`, and `adoupdate` (section 5, step 13). The dialog is tried by hand only.
 - sqldta 1.1.0 renames the PropertyTypes Format and DataLabel to VariableFormat and DatasetLabel, and reads the old names as well; fixtures version 2. Its log at cc123bb, whose code is that of 27884a5, showed 220 passed and 0 failed, through ODBC Driver 13 as the template; the shorter note of a fallback driver, written after it, is untested. Merged in pull request #2; the tag v1.1.0 is on 63e7f14 (section 9).
 - sqldta 1.2.0: backward support for a predecessor's label table, `SQLDTA_LABELFALLBACK`, and `examples/data_properties_view.sql`; fixtures version 3. Its log at 7992273 showed 224 passed and 0 failed, through ODBC Driver 13 as the template, after the log at 600d792 had shown two faults of the tests. Merged in pull request #3; the tag v1.2.0 is on 7ea85f0 (section 10).
-- sqldta 1.3.0, on the branch `claude/quirky-brown-w7d5xx` restarted from `main` at 7ea85f0: DatasetDescription rows, `r(description)` and the dialog's description; fixtures version 4. Its log at 517b842 showed 225 passed and 0 failed, through ODBC Driver 13 as the template (section 11).
+- sqldta 1.3.0: DatasetDescription rows, `r(description)` and the dialog's description; fixtures version 4. Its log at 517b842 showed 225 passed and 0 failed, through ODBC Driver 13 as the template. Merged in pull request #4; the tag v1.3.0 is on 32a11bf (section 11).
+- sqldta 1.3.1, on the branch `claude/quirky-brown-w7d5xx` restarted from `main` at 32a11bf: the third pass over the dialog's layout, approved by the maintainer on 29 Oct 2026; pull request #5. Its log at 7be9f62 showed 225 passed and 0 failed (section 12).
 
 ## 2. The archive
 
@@ -283,6 +284,7 @@ Before test 204, the type report shows the server's version, compatibility level
 | 23 Oct 2026 | 600d792 (branch `claude/quirky-brown-w7d5xx`; sqldta 1.2.0), Stata 19 SE, template through ODBC Driver 13 | 222 passed, 2 failed | fixtures version 3; tests 222 and 225 passed; 223 and 224 failed in the tests themselves (section 10) |
 | 23 Oct 2026 | 7992273 (branch `claude/quirky-brown-w7d5xx`; sqldta 1.2.0), Stata 19 SE, template through ODBC Driver 13 | 224 passed, 0 failed | `SQLDTA_LABELFALLBACK`, tests 222 to 225 (section 10) |
 | 28 Oct 2026 | 517b842 (branch `claude/quirky-brown-w7d5xx`; sqldta 1.3.0), Stata 19 SE, template through ODBC Driver 13 | 225 passed, 0 failed | fixtures version 4; `r(description)` and the dialog's description (tests 164, 165, 225 and 226) (section 11) |
+| 29 Oct 2026 | 7be9f62 (branch `claude/quirky-brown-w7d5xx`, pull request #5; sqldta 1.3.1), Stata 19 SE, template through ODBC Driver 13 | 225 passed, 0 failed | the third pass over the dialog's layout; test 200 on the new dialog file (section 12) |
 
 ## 9. Version 1.1.0: VariableFormat and DatasetLabel
 
@@ -385,8 +387,32 @@ To give the dialog the paragraph without a query of its own, sqldta's label quer
 | 1 | The change, pushed to `claude/quirky-brown-w7d5xx` | Claude | done |
 | 2 | Pull; run `tests/create_fixtures.sql` in SSMS (fixtures version 4); run `tests/test_sqldta.do`; upload the log | maintainer | done: the log at 517b842 (below) |
 | 3 | Fix what fails, until a log passes on the head | Claude; maintainer | done: nothing failed |
-| 4 | Pull request into `main`, merged with a merge commit; release v1.3.0 | Claude; maintainer | pull request #4 opened 28 Oct 2026; to be merged and released |
+| 4 | Pull request into `main`, merged with a merge commit; release v1.3.0 | Claude; maintainer | done: merged in pull request #4, 32a11bf; the tag v1.3.0 is on it |
 
 ### The log
 
 - 517b842, 28 Oct 2026, through ODBC Driver 13 as the template: the branch and commit lines matched the pushed head; fixtures version 4; 225 passed and 0 failed. The dialog's text for `sqldta_test_main` gave the data label, then paragraph 1 of the description with its double quotes, backquote and dollar sign as stored, then the columns left out, and no dataset notes; through the fallback it was the same; for the types table, which has no paragraph 1, it ended "No dataset description available."; `r(description)` was the text of paragraph 1 through the label table and through the fallback, empty with `labels(none)`, and the counts of applied and skipped rows were unchanged.
+
+## 12. Version 1.3.1: the third pass over the dialog's layout
+
+### Decisions
+
+On 29 Oct 2026 the maintainer asked for a neater dialog, with a screenshot of the layout of the second pass, and approved the proposal the same day with three answers: the dialog is 860 by 600; `labeltable()` moves to the Import tab, into the group of labels and notes; and no read-only preview of `sqlselect()` for now. CLAUDE.md, under Dialog, gives the layout. Stata's dialog language has no multi-line field for typing (the help file of dialog programming, read on 29 Oct 2026: an EDIT is one line, and its width does not limit the text, which scrolls), so the fields for typing are as wide as the dialog rather than taller.
+
+### What changed
+
+`src/sqldta.dlg` (the size, the positions of every control, the label-table field on the Import tab, and new group boxes "Columns to load" and of labels and notes holding the label-table field), `src/sqldta_dlg.ado` (the label-table field named on the Import tab; the description cut at 720 characters, 480 before, and the text of a column at 800, 400 before, in proportion to the areas of their boxes), the help file's paragraphs on the dialog, the Distribution-Date (20261029) and the README's version line. No control was renamed, and no option, tooltip or command changed but the tooltip of the label-table field, which now begins "As schema.table or table".
+
+### Steps
+
+| # | Step | Who | State |
+|---|---|---|---|
+| 1 | The change, pushed to `claude/quirky-brown-w7d5xx` | Claude | done |
+| 2 | Pull; in Stata, `do dev`, then `db sqldta`: look at both tabs, choose a table, a column, and copy the command with a label table typed | maintainer | done, 29 Oct 2026: the maintainer was happy with the layout |
+| 3 | Adjust the positions and the cut points | Claude; maintainer | not needed |
+| 4 | Run `tests/test_sqldta.do` on the head (test 200 checks the dialog's texts); upload the log | maintainer | done: the log at 7be9f62 (below) |
+| 5 | Pull request into `main`, merged with a merge commit; release v1.3.1 | Claude; maintainer | pull request #5 opened 29 Oct 2026; to be merged after step 4 |
+
+### The log
+
+- 7be9f62, 29 Oct 2026, through ODBC Driver 13 as the template: the branch line matched; fixtures version 4; 225 passed and 0 failed, test 200 among them, on the new dialog file. The head of pull request #5 was 4deb92f, which changes only CLAUDE.md and HANDOVER.md, so the code tested is the head's. The log is about 860 lines shorter than that at 517b842 only because Stata's line width was wider, so that fewer lines were wrapped; the same tests and reports ran.

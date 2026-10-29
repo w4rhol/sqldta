@@ -1,6 +1,6 @@
 /*
-*! version 1.1.0 23oct2026
-*! sqldta.dlg: dialog for sqldta 1.1.0; its helper is sqldta_dlg.ado
+*! version 1.3.1 29oct2026
+*! sqldta.dlg: dialog for sqldta 1.3.1; its helper is sqldta_dlg.ado
 *! Builds: sqldta [if], database() dataset([schema.]table) [server() frame() clear
 *!   labels() labeltable() sqlselect() sqlwhere() sqlrand() lowercase nodecformat
 *!   unicode()]
@@ -37,7 +37,7 @@
 
 VERSION 16.0
 SYNCHRONOUS_ONLY
-POSITION . . 760 490
+POSITION . . 860 600
 
 OK      ok1,   label("OK")
 CANCEL  can1,  label("Cancel")
@@ -60,9 +60,12 @@ BEGIN
 	program dlg_start
 END
 
+// Three columns: the server, database and schema with the description below
+// them; the tables and views, the full height of the tab; and the options,
+// in group boxes one above another (the maintainer's layout of 29 Oct 2026)
 DIALOG main, label("sqldta - Load a SQL Server table or view") tabtitle("Import")
 BEGIN
-  TEXT     tx_server     10   10  220    ., label("Server:")
+  TEXT     tx_server     10   10  250    ., label("Server:")
   COMBOBOX cb_server     @   +20    @    ., dropdown contents(ls_server)          ///
                                             option(server) error("Server")       ///
                                             onselchange(program main_server)
@@ -73,97 +76,99 @@ BEGIN
   TEXT     tx_schema     @   +30    @    ., label("Schema:")
   COMBOBOX cb_schema     @   +20    @    ., dropdown contents(ls_schema)          ///
                                             onselchange(program main_schema)
-  BUTTON   bu_refresh    @   +40  120    ., label("Refresh lists")                ///
+  BUTTON   bu_refresh    @   +35  120    ., label("Refresh lists")                ///
                                             onpush(program main_refresh)         ///
                                             tooltip("List the databases, schemas and tables again, keeping the names chosen or typed")
+  GROUPBOX gb_desc       10  200  250  390, label("Description")
+  TEXTBOX  tb_desc       20  +20  230  360, label("Choose a table or view to see its description.")
 
-  TEXT     tx_table      240  10  250    ., label("Tables and views:")
-  LISTBOX  lb_table      @   +20    @  240, contents(ls_table) option(dataset)   ///
+  TEXT     tx_table      270  10  270    ., label("Tables and views:")
+  LISTBOX  lb_table      @   +20    @  560, contents(ls_table) option(dataset)   ///
                                             error("Table or view")               ///
                                             onselchange(program main_table)
 
-  GROUPBOX gb_desc       500  10  250  260, label("Description")
-  TEXTBOX  tb_desc       510 +20  230  230, label("Choose a table or view to see its description.")
-
-  GROUPBOX gb_frame      10  280  470   85, label("Frame")
-  TEXT     tx_frame      20  +20  220    ., label("Name (blank for the current frame):")
+  GROUPBOX gb_frame      550  10  300  125, label("Frame")
+  TEXT     tx_frame      560 +20  280    ., label("Name (blank for the current frame):")
   EDIT     ed_frame      @   +20    @    ., option(frame) error("Frame")
-  CHECKBOX ck_clear      250 300  220    ., label("Replace the data in the frame")   ///
+  CHECKBOX ck_clear      @   +30    @    ., label("Replace the data in the frame")   ///
                                             option(clear)
   CHECKBOX ck_switch     @   +20    @    ., label("Change to the frame after loading")
 
-  GROUPBOX gb_vars       490 280  260   85, label("Variables")
-  CHECKBOX ck_lower      500 +20  245    ., label("Lower-case variable names")      ///
+  GROUPBOX gb_vars       550 145  300   70, label("Variables")
+  CHECKBOX ck_lower      560 +20  280    ., label("Lower-case variable names")      ///
                                             option(lowercase)
   CHECKBOX ck_nodec      @   +20    @    ., label("Do not inherit SQL decimal precision") ///
                                             option(nodecformat)                   ///
                                             tooltip("nodecformat: decimal and numeric columns keep the display format %10.0g instead of one from their precision and scale; the values are the same")
 
-  GROUPBOX gb_labels     10  375  740   70, label("Labels and notes from the label table")
-  CHECKBOX ck_values     20  +20  230    ., label("Value labels") default(1)     ///
+  GROUPBOX gb_labels     550 225  300  240, label("Labels and notes from the label table")
+  CHECKBOX ck_values     560 +25  280    ., label("Value labels") default(1)     ///
                                             tooltip("labels(values): value labels, such as 1 Male and 2 Female, from the ValueLabel rows of the label table, attached to numeric variables")
-  CHECKBOX ck_variables  @   +20    @    ., label("Variable labels") default(1)  ///
+  CHECKBOX ck_variables  @   +25    @    ., label("Variable labels") default(1)  ///
                                             tooltip("labels(variables): a label of up to 80 characters for each variable, from the VariableLabel rows of the label table")
-  CHECKBOX ck_formats    260 395  230    ., label("Display formats") default(1)  ///
+  CHECKBOX ck_formats    @   +25    @    ., label("Display formats") default(1)  ///
                                             tooltip("labels(formats): display formats, such as %9.2fc or %tdDD/NN/CCYY, from the VariableFormat rows of the label table; they replace the formats that sqldta sets")
-  CHECKBOX ck_varnotes   @   +20    @    ., label("Variable notes") default(1)   ///
+  CHECKBOX ck_varnotes   @   +25    @    ., label("Variable notes") default(1)   ///
                                             tooltip("labels(varnotes): notes on variables, from the VariableNote rows of the label table; type notes to list them")
-  CHECKBOX ck_dtanotes   500 395  240    ., label("Dataset notes") default(1)    ///
+  CHECKBOX ck_dtanotes   @   +25    @    ., label("Dataset notes") default(1)    ///
                                             tooltip("labels(dtanotes): notes on the dataset as a whole, from the DatasetNote rows of the label table; type notes to list them")
-  CHECKBOX ck_datalabel  @   +20    @    ., label("Dataset label") default(1)    ///
+  CHECKBOX ck_datalabel  @   +25    @    ., label("Dataset label") default(1)    ///
                                             tooltip("labels(datalabel): the label of the dataset, which label data sets and describe shows, from a DatasetLabel row of the label table; without it the label is database.schema.table")
+  TEXT     tx_labeltable @   +35    @    ., label("Label table (blank for the default):")
+  EDIT     ed_labeltable @   +20    @    ., option(labeltable)                        ///
+                                            tooltip("As schema.table or table; a table named without a schema is looked for in the schema of the default label table, ref.DataProperties unless the site has set another")
 END
 
-// No label has an ampersand: Windows takes it as the mark of a keyboard
-// shortcut and does not show it
+// Columns to load at the top and rows to load at the bottom, each in a group
+// box, with the fields as wide as the dialog (the maintainer's layout of
+// 29 Oct 2026). No label has an ampersand: Windows takes it as the mark of a
+// keyboard shortcut and does not show it.
 DIALOG advanced, tabtitle("Advanced")
 BEGIN
-  GROUPBOX gb_rows       10   10  740  170, label("Rows to load")
-  TEXT     tx_if         20  +20  720    ., label("As a Stata expression (if), such as age >= 65:")
+  GROUPBOX gb_cols       10   10  840  405, label("Columns to load")
+  TEXT     tx_select     20   30  600    ., label("Columns to load (blank for all; * and ? are wildcards):")
+  BUTTON   bu_addsel     630  26  100    ., label("Add selected")                    ///
+                                            onpush(script advanced_addcolumn)         ///
+                                            tooltip("Adds the column selected in the list below; a double-click on it does the same")
+  BUTTON   bu_addselall  740  26  100    ., label("Add all shown")                   ///
+                                            onpush(program advanced_addallselect)     ///
+                                            tooltip("Adds every column that the list below shows, which Find narrows")
+  EDIT     ed_select     20   55  820    ., option(sqlselect)                         ///
+                                            tooltip("Names separated by spaces; * stands for any characters and ? for one: birth* starts with birth, *loc* contains loc, *loc ends with loc")
+  TEXT     tx_unicode    20   90  600    ., label("Text columns to load as Unicode (* for all):")
+  BUTTON   bu_adduni     630  86  100    ., label("Add selected")                    ///
+                                            onpush(script advanced_addunicode)        ///
+                                            tooltip("Adds the column selected in the list below")
+  BUTTON   bu_adduniall  740  86  100    ., label("Add all shown")                   ///
+                                            onpush(program advanced_addallunicode)    ///
+                                            tooltip("Adds every column that the list below shows, which Find narrows")
+  EDIT     ed_unicode    20  115  820    ., option(unicode)                           ///
+                                            tooltip("varchar, char and text columns are loaded as they are, which is faster; name those that hold characters outside ASCII, such as accented letters, with * and ? as in Columns to load; see help sqldta")
+
+  TEXT     tx_column     20  150  390    ., label("Columns of the table (a double-click adds to Columns to load):")
+  TEXT     tx_find       20  175   40    ., label("Find:")
+  EDIT     ed_find       65  173  345    ., nomemory onchange(program advanced_find)  ///
+                                            tooltip("Shows only the columns whose name, variable label or value labels contain every word typed here, in any case, such as smok")
+  LISTBOX  lb_column     20  200  390  190, contents(ls_column)                       ///
+                                            onselchange(program advanced_column)       ///
+                                            ondblclick(script advanced_addcolumn)
+  TEXT     tx_shown      20  393  390    ., label(" ")
+
+  GROUPBOX gb_column     420 150  420  255, label("Column chosen")
+  TEXTBOX  tb_column     430 +20  400  225, label("Choose a table on the Import tab, then a column here to see its labels.")
+
+  GROUPBOX gb_rows       10  425  840  165, label("Rows to load")
+  TEXT     tx_if         20  +20  820    ., label("As a Stata expression (if), such as age >= 65:")
   EDIT     ed_if         @   +20    @    ., tooltip("Column names, numbers, strings in double quotes, td() and tc() dates; see help sqldta")
-  TEXT     tx_where      @   +25    @    ., label("As a T-SQL condition (sqlwhere), such as diag1 LIKE 'C1%':")
+  TEXT     tx_where      @   +28    @    ., label("As a T-SQL condition (sqlwhere), such as diag1 LIKE 'C1%':")
   EDIT     ed_where      @   +20    @    ., option(sqlwhere)                         ///
                                             tooltip("Passed to the server as typed, after WHERE")
-  TEXT     tx_both       @   +25    @    ., label("If both are given, a row is loaded only if it meets both.")
-  CHECKBOX ck_rand       @   +30  420    ., label("Random sample of this many of the rows that meet the conditions:") ///
+  TEXT     tx_both       @   +27    @    ., label("If both are given, a row is loaded only if it meets both.")
+  CHECKBOX ck_rand       @   +20  420    ., label("Random sample of this many of the rows that meet the conditions:") ///
                                             onclickon(advanced.ed_rand.enable)          ///
                                             onclickoff(advanced.ed_rand.disable)
   EDIT     ed_rand       +430  @  100    ., numonly option(sqlrand)                     ///
                                             error("Number of rows in the sample")
-
-  TEXT     tx_select     10  190  520    ., label("Columns to load (blank for all; * and ? are wildcards):")
-  EDIT     ed_select     @   +20    @    ., option(sqlselect)                         ///
-                                            tooltip("Names separated by spaces; * stands for any characters and ? for one: birth* starts with birth, *loc* contains loc, *loc ends with loc")
-  BUTTON   bu_addsel     +530  @  100    ., label("Add selected")                    ///
-                                            onpush(script advanced_addcolumn)         ///
-                                            tooltip("Adds the column selected in the list below; a double-click on it does the same")
-  BUTTON   bu_addselall  +110  @  100    ., label("Add all shown")                   ///
-                                            onpush(program advanced_addallselect)     ///
-                                            tooltip("Adds every column that the list below shows, which Find narrows")
-  TEXT     tx_unicode    10  235  520    ., label("Text columns to load as Unicode (* for all):")
-  EDIT     ed_unicode    @   +20    @    ., option(unicode)                           ///
-                                            tooltip("varchar, char and text columns are loaded as they are, which is faster; name those that hold characters outside ASCII, such as accented letters, with * and ? as in Columns to load; see help sqldta")
-  BUTTON   bu_adduni     +530  @  100    ., label("Add selected")                    ///
-                                            onpush(script advanced_addunicode)        ///
-                                            tooltip("Adds the column selected in the list below")
-  BUTTON   bu_adduniall  +110  @  100    ., label("Add all shown")                   ///
-                                            onpush(program advanced_addallunicode)    ///
-                                            tooltip("Adds every column that the list below shows, which Find narrows")
-
-  TEXT     tx_column     10  285  360    ., label("Columns (a double-click adds to Columns to load):")
-  TEXT     tx_find       @   +25   40    ., label("Find:")
-  EDIT     ed_find       +45   @  315    ., nomemory onchange(program advanced_find)  ///
-                                            tooltip("Shows only the columns whose name, variable label or value labels contain every word typed here, in any case, such as smok")
-  LISTBOX  lb_column     10  +25  360  120, contents(ls_column)                       ///
-                                            onselchange(program advanced_column)       ///
-                                            ondblclick(script advanced_addcolumn)
-  TEXT     tx_shown      @  +125  360    ., label(" ")
-
-  GROUPBOX gb_column     380 285  370  145, label("Column chosen")
-  TEXTBOX  tb_column     390 +20  350  120, label("Choose a table on the Import tab, then a column here to see its labels.")
-  TEXT     tx_labeltable 380 440  370    ., label("Label table, as schema.table or table (blank for the default):")
-  EDIT     ed_labeltable @   +20    @    ., option(labeltable)                        ///
-                                            tooltip("A table named without a schema is looked for in the schema of the default label table, ref.DataProperties unless the site has set another")
 END
 
 LIST ls_server
@@ -415,8 +420,8 @@ BEGIN
 				}
 			}
 		}
-		if ! advanced.ed_labeltable.isdefault() {
-			optionarg advanced.ed_labeltable
+		if ! main.ed_labeltable.isdefault() {
+			optionarg main.ed_labeltable
 		}
 		optionarg advanced.ed_select
 		optionarg advanced.ed_unicode

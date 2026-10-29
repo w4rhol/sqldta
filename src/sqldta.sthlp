@@ -1,5 +1,5 @@
 {smcl}
-{* *! version 1.3.0 28oct2026}{...}
+{* *! version 1.3.1 29oct2026}{...}
 {vieweralsosee "[D] odbc" "help odbc"}{...}
 {vieweralsosee "[D] frames" "help frames"}{...}
 {vieweralsosee "[D] label" "help label"}{...}
@@ -950,7 +950,7 @@ then lists what depends on it. Choosing a table shows its description: the
 approximate number of rows (not shown for a view), the number of columns that
 can be loaded, its linked tables, its data label, the paragraph of its
 description whose PropertyCode is 1, and any columns that would be left out. The
-description is read from the label table given on the {bf:Advanced} tab, or
+description is read from the label table given on the {bf:Import} tab, or
 the default label table; after changing it, click {bf:Refresh lists}. Names
 that contain a double quote, a backquote, {cmd:$}, a backslash or a dot are
 not listed; such tables can still be loaded by typing the command.
@@ -958,17 +958,18 @@ not listed; such tables can still be loaded by typing the command.
 {pstd}
 The {bf:Import} tab also has, in the group {bf:Frame}, the frame to load into,
 {opt clear} and a box that changes to that frame after the load; in the group
-{bf:Variables}, {opt lowercase} and {opt nodecformat}; and a box for each label
-type of {opt labels()}, all ticked by default.
+{bf:Variables}, {opt lowercase} and {opt nodecformat}; and, in the group of
+labels and notes, a box for each label type of {opt labels()}, all ticked by
+default, and {opt labeltable()}.
 
 {pstd}
-The {bf:Advanced} tab has, in the group {bf:Rows to load}, the {it:if}
+The {bf:Advanced} tab has, in the group {bf:Columns to load}, {opt sqlselect()}
+and {opt unicode()}, the list of the columns of the table and a box that shows
+the column chosen in the list; and, in the group {bf:Rows to load}, the {it:if}
 qualifier, {opt sqlwhere()} and {opt sqlrand()}. If both conditions are given,
 a row is loaded only if it meets both, and a random sample is drawn from those
-rows. Below them are {opt sqlselect()} and {opt unicode()}, the list of the
-columns of the table, {opt labeltable()} and a box that shows the column
-chosen in the list: its variable label, whether it is a {cmd:char},
-{cmd:varchar} or {cmd:text} column, which {opt unicode()} affects, its value
+rows. The box of the column chosen shows its variable label, whether it is a
+{cmd:char}, {cmd:varchar} or {cmd:text} column, which {opt unicode()} affects, its value
 labels and its notes, as a load would apply them. These are read once, when
 the table is chosen, so that clicking a column reads nothing from the server.
 
@@ -977,7 +978,7 @@ the table is chosen, so that clicking a column reads nothing from the server.
 value labels contain every word typed in it, in any case: {cmd:smok} shows
 {cmd:smoker}, a column labelled "Smoking status", and a column with a value
 labelled "Never smoked". The line below the list says how many columns are
-shown. Beside {opt sqlselect()} and beside {opt unicode()}, {bf:Add selected}
+shown. Above {opt sqlselect()} and above {opt unicode()}, {bf:Add selected}
 adds the column selected in the list to that field, as a double-click does
 for {opt sqlselect()}, and {bf:Add all shown} adds every column that the list
 shows. Find starts empty each time the dialog opens.
