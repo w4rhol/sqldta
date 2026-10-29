@@ -13,7 +13,7 @@ The repository is public, so this file follows hard constraints 3 and 6 of CLAUD
 - sqldta 1.1.0 renames the PropertyTypes Format and DataLabel to VariableFormat and DatasetLabel, and reads the old names as well; fixtures version 2. Its log at cc123bb, whose code is that of 27884a5, showed 220 passed and 0 failed, through ODBC Driver 13 as the template; the shorter note of a fallback driver, written after it, is untested. Merged in pull request #2; the tag v1.1.0 is on 63e7f14 (section 9).
 - sqldta 1.2.0: backward support for a predecessor's label table, `SQLDTA_LABELFALLBACK`, and `examples/data_properties_view.sql`; fixtures version 3. Its log at 7992273 showed 224 passed and 0 failed, through ODBC Driver 13 as the template, after the log at 600d792 had shown two faults of the tests. Merged in pull request #3; the tag v1.2.0 is on 7ea85f0 (section 10).
 - sqldta 1.3.0: DatasetDescription rows, `r(description)` and the dialog's description; fixtures version 4. Its log at 517b842 showed 225 passed and 0 failed, through ODBC Driver 13 as the template. Merged in pull request #4; the tag v1.3.0 is on 32a11bf (section 11).
-- sqldta 1.3.1, on the branch `claude/quirky-brown-w7d5xx` restarted from `main` at 32a11bf: the third pass over the dialog's layout, approved by the maintainer on 29 Oct 2026; pull request #5. The test file is to be run on its head before the merge (section 12).
+- sqldta 1.3.1, on the branch `claude/quirky-brown-w7d5xx` restarted from `main` at 32a11bf: the third pass over the dialog's layout, approved by the maintainer on 29 Oct 2026; pull request #5. Its log at 7be9f62 showed 225 passed and 0 failed (section 12).
 
 ## 2. The archive
 
@@ -284,6 +284,7 @@ Before test 204, the type report shows the server's version, compatibility level
 | 23 Oct 2026 | 600d792 (branch `claude/quirky-brown-w7d5xx`; sqldta 1.2.0), Stata 19 SE, template through ODBC Driver 13 | 222 passed, 2 failed | fixtures version 3; tests 222 and 225 passed; 223 and 224 failed in the tests themselves (section 10) |
 | 23 Oct 2026 | 7992273 (branch `claude/quirky-brown-w7d5xx`; sqldta 1.2.0), Stata 19 SE, template through ODBC Driver 13 | 224 passed, 0 failed | `SQLDTA_LABELFALLBACK`, tests 222 to 225 (section 10) |
 | 28 Oct 2026 | 517b842 (branch `claude/quirky-brown-w7d5xx`; sqldta 1.3.0), Stata 19 SE, template through ODBC Driver 13 | 225 passed, 0 failed | fixtures version 4; `r(description)` and the dialog's description (tests 164, 165, 225 and 226) (section 11) |
+| 29 Oct 2026 | 7be9f62 (branch `claude/quirky-brown-w7d5xx`, pull request #5; sqldta 1.3.1), Stata 19 SE, template through ODBC Driver 13 | 225 passed, 0 failed | the third pass over the dialog's layout; test 200 on the new dialog file (section 12) |
 
 ## 9. Version 1.1.0: VariableFormat and DatasetLabel
 
@@ -409,5 +410,9 @@ On 29 Oct 2026 the maintainer asked for a neater dialog, with a screenshot of th
 | 1 | The change, pushed to `claude/quirky-brown-w7d5xx` | Claude | done |
 | 2 | Pull; in Stata, `do dev`, then `db sqldta`: look at both tabs, choose a table, a column, and copy the command with a label table typed | maintainer | done, 29 Oct 2026: the maintainer was happy with the layout |
 | 3 | Adjust the positions and the cut points | Claude; maintainer | not needed |
-| 4 | Run `tests/test_sqldta.do` on the head (test 200 checks the dialog's texts); upload the log | maintainer | to do |
+| 4 | Run `tests/test_sqldta.do` on the head (test 200 checks the dialog's texts); upload the log | maintainer | done: the log at 7be9f62 (below) |
 | 5 | Pull request into `main`, merged with a merge commit; release v1.3.1 | Claude; maintainer | pull request #5 opened 29 Oct 2026; to be merged after step 4 |
+
+### The log
+
+- 7be9f62, 29 Oct 2026, through ODBC Driver 13 as the template: the branch line matched; fixtures version 4; 225 passed and 0 failed, test 200 among them, on the new dialog file. The head of pull request #5 was 4deb92f, which changes only CLAUDE.md and HANDOVER.md, so the code tested is the head's. The log is about 860 lines shorter than that at 517b842 only because Stata's line width was wider, so that fewer lines were wrapped; the same tests and reports ran.
